@@ -9,7 +9,7 @@
 #include "terminalColors.h"
 
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 
 void DisplayDebugMode();
 int DebugPrintf(const char *format, ...);
