@@ -91,7 +91,7 @@ void DisplayCategories()
 
 void PrintBookData(struct Book *book)
 {
-	printf("%s | %s", book->name, book->type);
+	printf("%s | %s\n", book->name, book->type);
 }
 
 void SetHaveRead(struct Book *book, bool state)

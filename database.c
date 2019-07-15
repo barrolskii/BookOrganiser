@@ -7,6 +7,8 @@ void PrintAllRecords(struct ListNode *head)
 	while(curr)
 	{
 		PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 

@@ -208,6 +208,60 @@ char *GetSaveFile(const char *path)
 	return savePath;
 }
 
+void AddSaveDataToDatabase(const char *path, struct Database *database)
+{
+	if(access(path, F_OK) == 0)
+	{
+		DebugPrintf(ANSI_COLOR_GREEN "%s found\n" ANSI_COLOR_RESET, path);
+
+		FILE *fp = fopen(path, "r+");
+		char c[148] = {0};
+
+		DebugPrintf(ANSI_COLOR_ORANGE "Reading from file\n" ANSI_COLOR_RESET);
+
+		while(fgets(c, 128, fp) != NULL)
+		{
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s" ANSI_COLOR_RESET, c);
+
+			struct Book *book = malloc(sizeof(struct Book));
+
+			// Parse book data and add it to the database
+			char *token = strtok(c, "|");
+
+			strncpy(book->name, token, 128);
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			token = strtok(NULL, "|");
+			strncpy(book->type, token, 8);
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			token = strtok(NULL, "|");
+			book->haveRead = atoi(token);
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			token = strtok(NULL, "|");
+			book->isInterested = atoi(token);
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			token = strtok(NULL, "|");
+			book->category = SetCategoryFromValue(atoi(token));
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			token = strtok(NULL, "|");
+			DebugPrintf(ANSI_COLOR_ORANGE "c: %s\n" ANSI_COLOR_RESET, token);
+
+			Add(database, book);
+		}
+
+		fclose(fp);
+	}
+	else
+	{
+		printf(ANSI_COLOR_RED "Error: Couldn't find save file\n"
+												ANSI_COLOR_RESET);
+	}
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -249,7 +303,7 @@ int main(int argc, char **argv)
 	struct Database *bookDatabase = malloc(sizeof(struct Database));
 
 	char *saveFile = GetSaveFile(path);
-	//AddSaveDataToDatabase(saveFile, bookDatabase);
+	AddSaveDataToDatabase(saveFile, bookDatabase);
 
 	// Maybe change to check category directories exist
 	//CheckDirectories(path);
@@ -270,6 +324,7 @@ int main(int argc, char **argv)
 				break;
 			case 1:
 				// Print all records
+				PrintAllRecords(bookDatabase->head);
 				break;
 			case 2:
 				// Print unread books
@@ -292,6 +347,8 @@ int main(int argc, char **argv)
 	}
 
 	//WriteDataToSaveFile(bookDatabase, saveFile);
+
+	DeleteDatabaseData(bookDatabase);
 
 	free(bookDatabase);
 	free(saveFile);
