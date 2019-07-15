@@ -171,6 +171,43 @@ void CheckIfSaveFileExists(const char *path)
 	system(createFile);
 }
 
+char *GetSaveFile(const char *path)
+{
+	char saveFile[128] = "Saves/";
+	strcat(saveFile, path);
+	strcat(saveFile, ".psvf");
+
+	DebugPrintf(ANSI_COLOR_CYAN "Save file: %s\n" ANSI_COLOR_RESET, saveFile);
+
+	// Skip the first five characters in the save file string
+	// We only want to change the remaining forward slash characters
+	int i = 6; 
+	while(saveFile[i] != '\0')
+	{
+		if(saveFile[i] == '/')
+			saveFile[i] = '\\';
+
+		i++;
+	}
+
+	char *savePath = NULL;
+
+	if (access(saveFile, F_OK) == 0)
+	{
+		savePath = malloc(128);
+		strncpy(savePath, saveFile, 128);
+
+		DebugPrintf(ANSI_COLOR_GREEN "Save file %s found\n" ANSI_COLOR_RESET,
+																	savePath);
+	}
+	else
+	{
+		printf(ANSI_COLOR_RED "Cant find %s\n" ANSI_COLOR_RESET, savePath);
+	}
+
+	return savePath;
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -209,9 +246,9 @@ int main(int argc, char **argv)
 		printf(ANSI_COLOR_RED "No files found in directory\n" ANSI_COLOR_RESET);
 	}
 
-	//struct Database *bookDatabase = malloc(sizeof(Database));
+	struct Database *bookDatabase = malloc(sizeof(struct Database));
 
-	//char *saveFile = GetSaveFile(path);
+	char *saveFile = GetSaveFile(path);
 	//AddSaveDataToDatabase(saveFile, bookDatabase);
 
 	// Maybe change to check category directories exist
@@ -256,8 +293,8 @@ int main(int argc, char **argv)
 
 	//WriteDataToSaveFile(bookDatabase, saveFile);
 
-	// free(bookDatabase);
-	// free(saveFile);
+	free(bookDatabase);
+	free(saveFile);
 
 	return 0;
 }
