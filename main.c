@@ -60,6 +60,75 @@ void Init(const char *path)
 	DisplayDebugMode();
 }
 
+void OrganiseBooks(const char *path)
+{
+	DIR *dir;
+	struct dirent *ent;
+
+	if((dir = opendir(path)) != NULL)
+	{
+		printf(ANSI_COLOR_GREEN "Directory %s found\n" ANSI_COLOR_RESET, path);
+
+		char name[128] = {0};
+
+		// Print all regular files within the given directory
+		while((ent = readdir(dir)) != NULL)
+		{
+			if(ent->d_type == DT_REG)
+			{
+				strncpy(name, ent->d_name, 128);
+				printf("name: %s\n", name);
+
+				char *extension = NULL;
+				extension = strrchr(name, '.');
+
+				// Skip files that have a NULL extension of if they are
+				// greater than the size of the type member of the book struct
+				if (extension == NULL) continue;
+				if (strlen(extension) > 7) continue;
+
+				DisplayCategories();
+				enum Category category = SetCategory();
+
+				// Move book to category directory
+				char pathToMove[128];
+				strncpy(pathToMove, path, 128);
+				DebugPrintf(ANSI_COLOR_CYAN "ptm: %s\n" ANSI_COLOR_RESET,
+															pathToMove);
+
+				// Concatenate category directory based on the input
+				// category from the SetCategory() call
+				strcat(pathToMove, categories[category]);
+				DebugPrintf(ANSI_COLOR_CYAN "ptm: %s\n" ANSI_COLOR_RESET,
+															pathToMove);
+
+				char mvCmd[256] = "mv ";
+
+				// Concat the current file to the current path
+				char file[128] = {0};
+				strcat(file, path);
+				strcat(file, name);
+				DebugPrintf(ANSI_COLOR_CYAN "file %s\n" ANSI_COLOR_RESET, file);
+
+				// Concat the file with its path to the move command
+				strcat(mvCmd, file);
+				strcat(mvCmd, " ");
+				strcat(mvCmd, pathToMove);
+				DebugPrintf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, mvCmd);
+
+				strncpy(file, "", 128);
+				system(mvCmd); 
+			}
+		}
+
+		closedir(dir);
+	}
+	else
+	{
+		printf(ANSI_COLOR_RED "Could not open directory\n" ANSI_COLOR_RED);
+	}
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -89,7 +158,7 @@ int main(int argc, char **argv)
 	{
 		printf(ANSI_COLOR_GREEN "%d files found\n" ANSI_COLOR_RESET, fileCount);
 
-		//OrganiseBooks(path);
+		OrganiseBooks(path);
 		//CheckIfSaveFileExists(path);
 	}
 	else
