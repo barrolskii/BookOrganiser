@@ -129,6 +129,48 @@ void OrganiseBooks(const char *path)
 	}
 }
 
+void CheckIfSaveFileExists(const char *path)
+{
+	char saveFile[128] = {0};
+	strcat(saveFile, path);
+	strcat(saveFile, ".psvf");
+
+	// Replace forward slashes with backslashes so the path can be saved
+	// as a file
+	int i = 0;
+	while (saveFile[i] != '\0')
+	{
+		if (saveFile[i] == '/')
+			saveFile[i] = '\\';
+
+		i++;
+	}
+
+	DebugPrintf(ANSI_COLOR_CYAN "Save file: %s\n" ANSI_COLOR_RESET, saveFile);
+
+	char savePath[256] = "Saves/";
+	strcat(savePath, saveFile);
+	DebugPrintf(ANSI_COLOR_CYAN "Save path: %s\n" ANSI_COLOR_RESET, savePath);
+
+	if (access(savePath, F_OK) == 0)
+		printf(ANSI_COLOR_GREEN "Save file found\n" ANSI_COLOR_RESET);
+	else
+	{
+		printf(ANSI_COLOR_RED "No save file found\n" ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_GREEN "Creating save file for %s\n" ANSI_COLOR_RESET,
+																		path);
+	}
+
+	char createFile[256] = "touch Saves/\"";
+
+	strcat(createFile, saveFile);
+	strcat(createFile, "\"");
+	DebugPrintf(ANSI_COLOR_CYAN "createFile: %s\n" ANSI_COLOR_RESET,
+														createFile);
+
+	system(createFile);
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -159,7 +201,7 @@ int main(int argc, char **argv)
 		printf(ANSI_COLOR_GREEN "%d files found\n" ANSI_COLOR_RESET, fileCount);
 
 		OrganiseBooks(path);
-		//CheckIfSaveFileExists(path);
+		CheckIfSaveFileExists(path);
 	}
 	else
 	{
