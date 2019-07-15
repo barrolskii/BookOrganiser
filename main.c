@@ -2,6 +2,8 @@
 
 #include "terminalColors.h"
 #include "utility.h"
+#include "book.h"
+#include "database.h"
 
 void Init(const char *path)
 {
