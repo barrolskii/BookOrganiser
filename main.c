@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 
 #include "terminalColors.h"
 #include "utility.h"
@@ -7,7 +8,56 @@
 
 void Init(const char *path)
 {
-	printf("Init function\n");
+	DebugPrintf(ANSI_COLOR_RED "Path: %s\n", path);
+
+	char makeDir[128] = "mkdir ";
+	strcat(makeDir, path);
+	DebugPrintf(ANSI_COLOR_RED "makeDir: %s\n" ANSI_COLOR_RESET, makeDir);
+
+	char pathCheck[128];
+	strncpy(pathCheck, path, 128);
+
+	const char *dir = NULL;
+
+	// Check if enum categories exitst and create them if they don't
+	for(int i = 0; i < 6; i++)
+	{
+		strcat(pathCheck, categories[i]);
+
+		if(access(pathCheck, F_OK) == 0)
+		{
+			printf(ANSI_COLOR_RED "%s exists\n" ANSI_COLOR_RESET,
+													categories[i]);
+		}
+		else
+		{
+			printf(ANSI_COLOR_GREEN "Creating %s directory\n" ANSI_COLOR_RESET,
+																categories[i]);
+
+			dir = categories[i];
+			strcat(makeDir, dir);
+			system(makeDir);
+		}
+
+		strncpy(makeDir, "mkdir ", 128);
+		strcat(makeDir, path);
+
+		strncpy(pathCheck, path, 128);
+	}
+
+	// Create save directory if one is not found
+	if (access("Saves", F_OK) == 0)
+	{
+		printf(ANSI_COLOR_GREEN "Saves directory found\n" ANSI_COLOR_RESET);
+	}
+	else
+	{
+		printf(ANSI_COLOR_RED "No saves directory found\n" ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_GREEN "Creating saves directory\n" ANSI_COLOR_RESET);
+		system("mkdir Saves");
+	}
+
+	DisplayDebugMode();
 }
 
 void DisplayMenu()
