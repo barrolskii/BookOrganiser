@@ -91,10 +91,9 @@ void DisplayCategories()
 
 void PrintBookData(struct Book *book)
 {
-	if(book == NULL)
-		printf("Book is NULL\n");
-	else
-		printf("%s | %s\n", book->name, book->type);
+	printf("%-3u | %-30s | %-8s | %-2d | %-2d | %-11s |\n", 
+							book->id, book->name, book->type, book->haveRead,
+							book->isInterested, GetBookCategory(book));
 }
 
 void SetHaveRead(struct Book *book, bool state)

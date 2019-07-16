@@ -6,6 +6,8 @@
 #include "book.h"
 #include "database.h"
 
+#define FOO(function, book) (function)(book);
+
 void Init(const char *path)
 {
 	DebugPrintf(ANSI_COLOR_RED "Path: %s\n", path);
@@ -366,8 +368,16 @@ void DisplayMenu()
 	printf("======================================\n");
 }
 
+void Test(struct Book book)
+{
+	printf("%s\n", book.name);
+}
+
 int main(int argc, char **argv)
 {
+	struct Book book = { 0, "bar", "bip", 0, 0, MATHS};
+	FOO(Test, book);
+
 	char path[128] = {0};
 	
 	printf("Enter a directory to sort\n");
