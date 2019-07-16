@@ -345,7 +345,25 @@ void WriteDataToSaveFile(struct Database *database, const char *path)
 
 void DisplayMenu()
 {
-	printf("Display menu\n");
+	const char *options[8] = {
+		"Exit program",
+		"Print all records",
+		"Print all unread books",
+		"Print all read books",
+		"Print all interesed books",
+		"Print all books of category",
+		"Print all books of extension",
+		"Print book by ID",
+	};
+
+	printf("======================================\n");
+
+	for(int i = 0; i < 8; i++)
+	{
+		printf("| %-3i| %-30s|\n", i, options[i]);
+	}
+
+	printf("======================================\n");
 }
 
 int main(int argc, char **argv)
