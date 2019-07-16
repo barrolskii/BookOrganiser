@@ -97,8 +97,6 @@ void Add(struct Database *database, struct Book *book)
 		database->head->next = NULL;
 		database->count++;
 
-		PrintAllRecords(database->head);
-
 		return;
 	}
 
@@ -111,8 +109,6 @@ void Add(struct Database *database, struct Book *book)
 	head->next->data = book;
 	head->next->next = NULL;
 	database->count++;
-
-	PrintAllRecords(database->head);
 }
 
 void WriteDataToFile(struct Database *database, const char *path)
@@ -176,9 +172,6 @@ int CheckBook(struct Database *database, const char *name)
 
 	struct ListNode *head = database->head;
 
-	DebugPrintf("Names\n%s : %s\n", head->data->name, name);
-	printf("head name: %s\n", head->data->name);
-
 	while(head)
 	{
 		if (strcmp(head->data->name, name) == 0)
@@ -186,8 +179,6 @@ int CheckBook(struct Database *database, const char *name)
 			DebugPrintf("Names match!\n%s : %s\n", head->data->name, name);
 			return 0;
 		}
-		else
-			DebugPrintf(ANSI_COLOR_RED "No match for %s\n" ANSI_COLOR_RESET, head->data->name);
 
 		head = head->next;
 	}

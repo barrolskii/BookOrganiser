@@ -314,7 +314,6 @@ void CheckDirectories(const char *path, struct Database *database)
 			}
 		}
 
-		DebugPrintf(ANSI_COLOR_RED "i: %s\n" ANSI_COLOR_RESET, categories[i]);
 		strncpy(dirPath, " ", 128);
 	}
 }
@@ -362,32 +361,11 @@ int main(int argc, char **argv)
 	char *saveFile = GetSaveFile(path);
 	AddSaveDataToDatabase(saveFile, bookDatabase);
 
-	printf("===================================================\n");
-	PrintAllRecords(bookDatabase->head);
-	printf("===================================================\n");
-
-	struct ListNode *curr = bookDatabase->head;
-	while(1)
-	{
-		if (curr == NULL)
-		{
-			printf("curr is NULL\n");
-			break;
-		}
-
-		if (curr->data == NULL)
-			printf("curr data is null\n");
-		else
-			printf("curr name %s\n", curr->data->name);
-
-		curr = curr->next;
-	}
 
 	// Maybe change to check category directories exist
 	CheckDirectories(path, bookDatabase);
 
 	unsigned int input = 1;
-	//struct Node *head = bookDatabase->head;
 
 	while(input != 0)
 	{
