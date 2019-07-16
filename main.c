@@ -20,7 +20,7 @@ void Init(const char *path)
 	const char *dir = NULL;
 
 	// Check if enum categories exitst and create them if they don't
-	for(int i = 0; i < 6; i++)
+	for(int i = 0; i < TOTAL_CATEGORIES; i++)
 	{
 		strcat(pathCheck, categories[i]);
 
@@ -269,7 +269,7 @@ void CheckDirectories(const char *path, struct Database *database)
 	char dirPath[128] = {0};
 	char name[128]	  = {0};
 
-	for(int i = 0; i < 6; i++)
+	for(int i = 0; i < TOTAL_CATEGORIES; i++)
 	{
 		strncpy(dirPath, path, 128);
 		strcat(dirPath, categories[i]);
@@ -408,6 +408,7 @@ int main(int argc, char **argv)
 				PrintAllRecords(bookDatabase->head);
 				break;
 			case 2:
+				printf("Count: %d\n", bookDatabase->count);
 				// Print unread books
 				break;
 			case 3:

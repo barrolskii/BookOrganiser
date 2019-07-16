@@ -81,7 +81,7 @@ void DisplayCategories()
 {
 	printf("=======================================================\n");
 
-	for(int i = 0; i < 6; i++)
+	for(int i = 0; i < TOTAL_CATEGORIES; i++)
 	{
 		printf("|%s", categories[i]);
 	}

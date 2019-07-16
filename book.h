@@ -11,6 +11,7 @@
 
 #define MAX_BOOK_NAME_SIZE 128
 #define MAX_EXTENSION_SIZE 8
+#define TOTAL_CATEGORIES 6
 
 enum Category
 {
