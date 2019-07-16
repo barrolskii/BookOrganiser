@@ -318,6 +318,31 @@ void CheckDirectories(const char *path, struct Database *database)
 	}
 }
 
+void WriteDataToSaveFile(struct Database *database, const char *path)
+{
+	DebugPrintf(ANSI_COLOR_ORANGE "Path %s\n" ANSI_COLOR_RESET, path);
+	DebugPrintf(ANSI_COLOR_ORANGE "Writing data to file" ANSI_COLOR_RESET);
+
+	FILE *fp = fopen(path, "w+");
+
+	struct ListNode *head = database->head;
+	while(head)
+	{
+		DebugPrintf(ANSI_COLOR_ORANGE "Parsing data\n" ANSI_COLOR_RESET);
+
+		char *parsedData = ParseBookDataForWriting(head->data);
+		DebugPrintf(ANSI_COLOR_ORANGE "Parsed data: %s\n" ANSI_COLOR_RESET,
+																parsedData);
+
+		fputs(parsedData, fp);
+		free(parsedData);
+
+		head = head->next;
+	}
+
+	fclose(fp);
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -402,7 +427,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	//WriteDataToSaveFile(bookDatabase, saveFile);
+	WriteDataToSaveFile(bookDatabase, saveFile);
 
 	DeleteDatabaseData(bookDatabase);
 
