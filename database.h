@@ -16,15 +16,15 @@ struct ListNode
 };
 
 void PrintAllRecords(struct ListNode *head);
-void PrintAllBooksOfExtension(const char *ext, struct ListNode *head);
+void PrintAllBooksOfExtension(struct ListNode *head);
 
 void PrintAllUnreadBooks(struct ListNode *head);
 void PrintAllReadBooks(struct ListNode *head);
 
 void PrintAllInterestedBooks(struct ListNode *head);
-void PrintAllBooksOfCategory(enum Category category, struct ListNode *head);
+void PrintAllBooksOfCategory(struct ListNode *head);
 
-void PrintBookById(struct ListNode *head, unsigned int id);
+void PrintBookById(struct ListNode *head);
 
 struct Database
 {

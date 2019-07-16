@@ -392,7 +392,7 @@ int main(int argc, char **argv)
 
 	unsigned int input = 1;
 
-	while(input != 0)
+	while(input)
 	{
 		DisplayMenu();
 
@@ -404,24 +404,25 @@ int main(int argc, char **argv)
 				printf("Exiting program. Goodbye\n");
 				break;
 			case 1:
-				// Print all records
 				PrintAllRecords(bookDatabase->head);
 				break;
 			case 2:
-				printf("Count: %d\n", bookDatabase->count);
-				// Print unread books
+				PrintAllUnreadBooks(bookDatabase->head);
 				break;
 			case 3:
-				// Print all read books
+				PrintAllReadBooks(bookDatabase->head);
 				break;
 			case 4:
-				// Print all interested books
+				PrintAllInterestedBooks(bookDatabase->head);
 				break;
 			case 5:
-				// Print all books of input category
+				PrintAllBooksOfCategory(bookDatabase->head);
 				break;
 			case 6:
-				// Print all books of extension
+				PrintAllBooksOfExtension(bookDatabase->head);
+				break;
+			case 7:
+				PrintBookById(bookDatabase->head);
 				break;
 			default:
 				printf("Please choose a valid option\n");

@@ -12,14 +12,19 @@ void PrintAllRecords(struct ListNode *head)
 	}
 }
 
-void PrintAllBooksOfExtension(const char *ext, struct ListNode *head)
+void PrintAllBooksOfExtension(struct ListNode *head)
 {
 	struct ListNode *curr = head;
 
+	char ext[8] = {0};
+	scanf("%s", ext);
+
 	while(curr)
 	{
-		if(strcmp(ext, curr->data->type))
+		if(strcmp(ext, curr->data->type) == 0)
 			PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 
@@ -32,6 +37,8 @@ void PrintAllUnreadBooks(struct ListNode *head)
 	{
 		if(curr->data->haveRead == 0)
 			PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 
@@ -43,6 +50,8 @@ void PrintAllReadBooks(struct ListNode *head)
 	{
 		if(curr->data->haveRead == 1)
 			PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 
@@ -54,23 +63,32 @@ void PrintAllInterestedBooks(struct ListNode *head)
 	{
 		if(curr->data->isInterested == 1)
 			PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 
-void PrintAllBooksOfCategory(enum Category category, struct ListNode *head)
+void PrintAllBooksOfCategory(struct ListNode *head)
 {
 	struct ListNode *curr = head;
+
+	enum Category category = SetCategory();
 
 	while(curr)
 	{
 		if(curr->data->category == category)
 			PrintBookData(curr->data);
+
+		curr = curr->next;
 	}
 }
 
-void PrintBookById(struct ListNode *head, unsigned int id)
+void PrintBookById(struct ListNode *head)
 {
 	struct ListNode *curr = head;
+
+	unsigned int id = 0;
+	scanf("%u", &id);
 
 	while(curr)
 	{
@@ -79,6 +97,8 @@ void PrintBookById(struct ListNode *head, unsigned int id)
 			PrintBookData(curr->data);
 			return;
 		}
+
+		curr = curr->next;
 	}
 }
 
