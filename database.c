@@ -176,17 +176,25 @@ void DeleteDatabaseData(struct Database *database)
 	}
 }
 
-void PrintRecords()
+void PrintRecords(void (*func)(struct ListNode *), struct ListNode *head)
 {
+	char border[87] = {[0 ... 86] = '='};
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
+
+
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+				"id", "name", "type", "Read", "Interested", "category");
+
+
 	printf(ANSI_COLOR_CYAN
 			"---------------------------------------------------------------\n"
 			ANSI_COLOR_RESET);
 
-	// TODO: Implement function pointer print calls
+	func(head);
 
-	printf(ANSI_COLOR_CYAN
-			"---------------------------------------------------------------\n"
-			ANSI_COLOR_RESET);
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 }
 
 int CheckBook(struct Database *database, const char *name)

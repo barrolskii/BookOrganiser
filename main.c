@@ -6,7 +6,9 @@
 #include "book.h"
 #include "database.h"
 
-#define FOO(function, book) (function)(book);
+#define FOO(function, book, param) \
+	(function)(book);		\
+	printf("%s\n", book.param); \
 
 void Init(const char *path)
 {
@@ -376,7 +378,7 @@ void Test(struct Book book)
 int main(int argc, char **argv)
 {
 	struct Book book = { 0, "bar", "bip", 0, 0, MATHS};
-	FOO(Test, book);
+	FOO(Test, book, name);
 
 	char path[128] = {0};
 	
@@ -432,7 +434,8 @@ int main(int argc, char **argv)
 				printf("Exiting program. Goodbye\n");
 				break;
 			case 1:
-				PrintAllRecords(bookDatabase->head);
+				PrintRecords(PrintAllRecords, bookDatabase->head);
+				//PrintAllRecords(bookDatabase->head);
 				break;
 			case 2:
 				PrintAllUnreadBooks(bookDatabase->head);

@@ -37,7 +37,7 @@ void Add(struct Database *database, struct Book *book);
 void WriteDataToFile(struct Database *database, const char *path);
 void DeleteDatabaseData(struct Database *database);
 
-void PrintRecords();
+void PrintRecords(void (*func)(struct ListNode *), struct ListNode *head);
 
 int CheckBook(struct Database *database, const char *name);
 
