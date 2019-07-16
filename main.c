@@ -262,6 +262,63 @@ void AddSaveDataToDatabase(const char *path, struct Database *database)
 	}
 }
 
+void CheckDirectories(const char *path, struct Database *database)
+{
+	DebugPrintf(ANSI_COLOR_CYAN "Check dir: %s\n" ANSI_COLOR_RESET, path);
+
+	char dirPath[128] = {0};
+	char name[128]	  = {0};
+
+	for(int i = 0; i < 6; i++)
+	{
+		strncpy(dirPath, path, 128);
+		strcat(dirPath, categories[i]);
+
+		DebugPrintf(ANSI_COLOR_RED "dirPath: %s\n" ANSI_COLOR_RESET, dirPath);
+
+		DIR *dir;
+		struct dirent *ent;
+
+		if((dir = opendir(dirPath)) != NULL)
+		{
+			while((ent = readdir(dir)) != NULL)
+			{
+				if(ent->d_type == DT_REG)
+				{
+					DebugPrintf(ANSI_COLOR_ORANGE "file %s\n" ANSI_COLOR_RESET,
+																ent->d_name);
+
+					strncpy(name, ent->d_name, 128);
+					if(CheckBook(database, strtok(ent->d_name, ".")) != 0)
+					{
+						printf(ANSI_COLOR_GREEN "Adding book to database\n"
+														ANSI_COLOR_RESET);
+
+						struct Book *book = malloc(sizeof(struct Book));
+
+						strncpy(book->type, strrchr(name, '.'), 8);
+						strncpy(book->name, strtok(name, "."), 128);
+						book->haveRead = 0;
+						book->isInterested = 0;
+						book->category = SetCategoryFromValue(i);
+
+						DebugPrintf(ANSI_COLOR_GREEN "Adding %s\n"
+									ANSI_COLOR_RESET, book->name);
+
+						Add(database, book);
+					}
+					else
+						DebugPrintf(ANSI_COLOR_RED "Book skipped\n"
+												ANSI_COLOR_RESET);
+				}
+			}
+		}
+
+		DebugPrintf(ANSI_COLOR_RED "i: %s\n" ANSI_COLOR_RESET, categories[i]);
+		strncpy(dirPath, " ", 128);
+	}
+}
+
 void DisplayMenu()
 {
 	printf("Display menu\n");
@@ -305,8 +362,29 @@ int main(int argc, char **argv)
 	char *saveFile = GetSaveFile(path);
 	AddSaveDataToDatabase(saveFile, bookDatabase);
 
+	printf("===================================================\n");
+	PrintAllRecords(bookDatabase->head);
+	printf("===================================================\n");
+
+	struct ListNode *curr = bookDatabase->head;
+	while(1)
+	{
+		if (curr == NULL)
+		{
+			printf("curr is NULL\n");
+			break;
+		}
+
+		if (curr->data == NULL)
+			printf("curr data is null\n");
+		else
+			printf("curr name %s\n", curr->data->name);
+
+		curr = curr->next;
+	}
+
 	// Maybe change to check category directories exist
-	//CheckDirectories(path);
+	CheckDirectories(path, bookDatabase);
 
 	unsigned int input = 1;
 	//struct Node *head = bookDatabase->head;

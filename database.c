@@ -84,6 +84,8 @@ void PrintBookById(struct ListNode *head, unsigned int id)
 
 void Add(struct Database *database, struct Book *book)
 {
+	printf(ANSI_COLOR_MAGENTA "Add func book %s\n" ANSI_COLOR_RESET, book->name);
+
 	struct ListNode *head = database->head;
 
 	if (!head)
@@ -92,7 +94,10 @@ void Add(struct Database *database, struct Book *book)
 
 		database->head = malloc(sizeof(struct ListNode));
 		database->head->data = book;
+		database->head->next = NULL;
 		database->count++;
+
+		PrintAllRecords(database->head);
 
 		return;
 	}
@@ -104,7 +109,10 @@ void Add(struct Database *database, struct Book *book)
 
 	head->next = malloc(sizeof(struct ListNode));
 	head->next->data = book;
+	head->next->next = NULL;
 	database->count++;
+
+	PrintAllRecords(database->head);
 }
 
 void WriteDataToFile(struct Database *database, const char *path)
@@ -164,9 +172,13 @@ void PrintRecords()
 
 int CheckBook(struct Database *database, const char *name)
 {
-	DebugPrintf("Check book: %s\n", name);
+	DebugPrintf(ANSI_COLOR_ORANGE "Check book: %s\n" ANSI_COLOR_RESET, name);
 
 	struct ListNode *head = database->head;
+
+	DebugPrintf("Names\n%s : %s\n", head->data->name, name);
+	printf("head name: %s\n", head->data->name);
+
 	while(head)
 	{
 		if (strcmp(head->data->name, name) == 0)
@@ -174,6 +186,10 @@ int CheckBook(struct Database *database, const char *name)
 			DebugPrintf("Names match!\n%s : %s\n", head->data->name, name);
 			return 0;
 		}
+		else
+			DebugPrintf(ANSI_COLOR_RED "No match for %s\n" ANSI_COLOR_RESET, head->data->name);
+
+		head = head->next;
 	}
 
 	return -1;
