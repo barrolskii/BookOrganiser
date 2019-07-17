@@ -179,7 +179,7 @@ void SetBookData(void (*setFunc)(struct Book *book), struct ListNode *head)
 
 void Add(struct Database *database, struct Book *book)
 {
-	printf(ANSI_COLOR_MAGENTA "Add func book %s\n" ANSI_COLOR_RESET, book->name);
+	DebugPrintf(ANSI_COLOR_MAGENTA "Add func book %s\n" ANSI_COLOR_RESET, book->name);
 
 	static int id = 0;
 	id++;

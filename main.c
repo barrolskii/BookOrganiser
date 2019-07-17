@@ -307,7 +307,7 @@ void CheckDirectories(const char *path, struct Database *database)
 					strncpy(name, ent->d_name, 128);
 					if(CheckBook(database, strtok(ent->d_name, ".")) != 0)
 					{
-						printf(ANSI_COLOR_GREEN "Adding book to database\n"
+						DebugPrintf(ANSI_COLOR_GREEN "Adding book to database\n"
 														ANSI_COLOR_RESET);
 
 						struct Book *book = malloc(sizeof(struct Book));
@@ -442,7 +442,7 @@ int main(int argc, char **argv)
 		switch(input)
 		{
 			case 0:
-				printf("Exiting program. Goodbye\n");
+				printf("Exiting program...\n");
 				break;
 			case 1:
 				PrintRecords(PrintAllRecords, bookDatabase->head);
@@ -479,12 +479,18 @@ int main(int argc, char **argv)
 		}
 	}
 
+	printf(ANSI_COLOR_GREEN "Saving data...\n" ANSI_COLOR_RESET);
+
 	WriteDataToSaveFile(bookDatabase, saveFile);
+
+	printf(ANSI_COLOR_GREEN "Saving complete.\n" ANSI_COLOR_RESET);
 
 	DeleteDatabaseData(bookDatabase);
 
 	free(bookDatabase);
 	free(saveFile);
+
+	printf("Exiting program. Goodbye\n");
 
 	return 0;
 }
