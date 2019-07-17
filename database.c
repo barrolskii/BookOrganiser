@@ -15,9 +15,21 @@ void PrintAllRecords(struct ListNode *head)
 void PrintAllBooksOfExtension(struct ListNode *head)
 {
 	struct ListNode *curr = head;
-
 	char ext[8] = {0};
+
+	printf("Enter extension\n");
 	scanf("%s", ext);
+
+	char border[87] = {[0 ... 86] = '='};
+	char line[87] = {[0 ... 86] = '-'};
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
+
+
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+				"id", "name", "type", "Read", "Interested", "category");
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, line);
 
 	while(curr)
 	{
@@ -26,6 +38,8 @@ void PrintAllBooksOfExtension(struct ListNode *head)
 
 		curr = curr->next;
 	}
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 }
 
 void PrintAllUnreadBooks(struct ListNode *head)
@@ -69,9 +83,21 @@ void PrintAllInterestedBooks(struct ListNode *head)
 
 void PrintAllBooksOfCategory(struct ListNode *head)
 {
-	struct ListNode *curr = head;
-
 	enum Category category = SetCategory();
+
+	char border[87] = {[0 ... 86] = '='};
+	char line[87] = {[0 ... 86] = '-'};
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
+
+
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+				"id", "name", "type", "Read", "Interested", "category");
+
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, line);
+
+	struct ListNode *curr = head;
 
 	while(curr)
 	{
@@ -80,20 +106,38 @@ void PrintAllBooksOfCategory(struct ListNode *head)
 
 		curr = curr->next;
 	}
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 }
 
 void PrintBookById(struct ListNode *head)
 {
-	struct ListNode *curr = head;
-
 	unsigned int id = 0;
+
+	printf("Enter book id\n");
 	scanf("%u", &id);
+
+	char border[87] = {[0 ... 86] = '='};
+	char line[87] = {[0 ... 86] = '-'};
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
+
+
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+				"id", "name", "type", "Read", "Interested", "category");
+
+
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, line);
+
+	struct ListNode *curr = head;
 
 	while(curr)
 	{
 		if(curr->data->id == id)
 		{
 			PrintBookData(curr->data);
+			printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
+
 			return;
 		}
 
@@ -179,6 +223,7 @@ void DeleteDatabaseData(struct Database *database)
 void PrintRecords(void (*func)(struct ListNode *), struct ListNode *head)
 {
 	char border[87] = {[0 ... 86] = '='};
+	char line[87] = {[0 ... 86] = '-'};
 
 	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 
@@ -187,9 +232,7 @@ void PrintRecords(void (*func)(struct ListNode *), struct ListNode *head)
 				"id", "name", "type", "Read", "Interested", "category");
 
 
-	printf(ANSI_COLOR_CYAN
-			"---------------------------------------------------------------\n"
-			ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, line);
 
 	func(head);
 

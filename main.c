@@ -6,10 +6,6 @@
 #include "book.h"
 #include "database.h"
 
-#define FOO(function, book, param) \
-	(function)(book);		\
-	printf("%s\n", book.param); \
-
 void Init(const char *path)
 {
 	DebugPrintf(ANSI_COLOR_RED "Path: %s\n", path);
@@ -377,9 +373,6 @@ void Test(struct Book book)
 
 int main(int argc, char **argv)
 {
-	struct Book book = { 0, "bar", "bip", 0, 0, MATHS};
-	FOO(Test, book, name);
-
 	char path[128] = {0};
 	
 	printf("Enter a directory to sort\n");
@@ -435,16 +428,15 @@ int main(int argc, char **argv)
 				break;
 			case 1:
 				PrintRecords(PrintAllRecords, bookDatabase->head);
-				//PrintAllRecords(bookDatabase->head);
 				break;
 			case 2:
-				PrintAllUnreadBooks(bookDatabase->head);
+				PrintRecords(PrintAllUnreadBooks, bookDatabase->head);
 				break;
 			case 3:
-				PrintAllReadBooks(bookDatabase->head);
+				PrintRecords(PrintAllReadBooks, bookDatabase->head);
 				break;
 			case 4:
-				PrintAllInterestedBooks(bookDatabase->head);
+				PrintRecords(PrintAllInterestedBooks, bookDatabase->head);
 				break;
 			case 5:
 				PrintAllBooksOfCategory(bookDatabase->head);
