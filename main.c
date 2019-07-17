@@ -219,6 +219,21 @@ void AddSaveDataToDatabase(const char *path, struct Database *database)
 
 		DebugPrintf(ANSI_COLOR_ORANGE "Reading from file\n" ANSI_COLOR_RESET);
 
+		// Check the length of the file, newly created files will have a length
+		// of zero so the function will have to exit
+		fseek(fp, 0, SEEK_END);
+		long len = ftell(fp);
+
+		if(len == 0)
+		{
+			DebugPrintf(ANSI_COLOR_ORANGE 
+						"New file detected, skipping save file reading\n"
+						ANSI_COLOR_RESET);
+
+			return;
+		}
+		
+
 		while(fgets(c, 128, fp) != NULL)
 		{
 			DebugPrintf(ANSI_COLOR_ORANGE "c: %s" ANSI_COLOR_RESET, c);
@@ -264,6 +279,7 @@ void AddSaveDataToDatabase(const char *path, struct Database *database)
 
 void CheckDirectories(const char *path, struct Database *database)
 {
+	DebugPrintf(ANSI_COLOR_MAGENTA "Check directories function\n" ANSI_COLOR_RESET);
 	DebugPrintf(ANSI_COLOR_CYAN "Check dir: %s\n" ANSI_COLOR_RESET, path);
 
 	char dirPath[128] = {0};
@@ -405,6 +421,8 @@ int main(int argc, char **argv)
 	}
 
 	struct Database *bookDatabase = malloc(sizeof(struct Database));
+	bookDatabase->head = NULL;
+	bookDatabase->count = 0;
 
 	char *saveFile = GetSaveFile(path);
 	AddSaveDataToDatabase(saveFile, bookDatabase);

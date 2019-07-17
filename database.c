@@ -278,6 +278,8 @@ int CheckBook(struct Database *database, const char *name)
 
 	struct ListNode *head = database->head;
 
+	if(!head) return -1;
+
 	while(head)
 	{
 		if (strcmp(head->data->name, name) == 0)
