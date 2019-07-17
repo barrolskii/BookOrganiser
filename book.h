@@ -48,11 +48,15 @@ struct Book
 	enum Category category;
 };
 
+// Forward declare list node for SetBookData function. Struct is defined
+// in the database.h file
+struct ListNode;
+
 void PrintBookData(struct Book *book);
 
-void SetHaveRead(struct Book *book, bool state);
-void SetIsInterested(struct Book *book, bool state);
-void SetBookCategory(struct Book *book, enum Category category);
+void SetHaveRead(struct Book *book);
+void SetIsInterested(struct Book *book);
+void SetBookCategory(struct Book *book);
 
 const char *GetBookCategory(struct Book *book);
 char *ParseBookDataForWriting(struct Book *book);

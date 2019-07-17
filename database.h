@@ -25,6 +25,9 @@ void PrintAllInterestedBooks(struct ListNode *head);
 void PrintAllBooksOfCategory(struct ListNode *head);
 
 void PrintBookById(struct ListNode *head);
+struct Book *GetBookById(unsigned int id, struct ListNode *head);
+
+void SetBookData(void (*setFunc)(struct Book *book), struct ListNode *head);
 
 struct Database
 {

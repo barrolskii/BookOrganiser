@@ -345,7 +345,7 @@ void WriteDataToSaveFile(struct Database *database, const char *path)
 
 void DisplayMenu()
 {
-	const char *options[8] = {
+	const char *options[11] = {
 		"Exit program",
 		"Print all records",
 		"Print all unread books",
@@ -354,23 +354,21 @@ void DisplayMenu()
 		"Print all books of category",
 		"Print all books of extension",
 		"Print book by ID",
+		"Set book read status",
+		"Set book interested status",
+		"Set book category",
 	};
 
 	char border[38] = {[0 ... 37] = '='};
 
 	printf("%s\n", border);
 
-	for(int i = 0; i < 8; i++)
+	for(int i = 0; i < 11; i++)
 	{
 		printf("| %-3i| %-30s|\n", i, options[i]);
 	}
 
 	printf("%s\n", border);
-}
-
-void Test(struct Book book)
-{
-	printf("%s\n", book.name);
 }
 
 int main(int argc, char **argv)
@@ -448,6 +446,15 @@ int main(int argc, char **argv)
 				break;
 			case 7:
 				PrintBookById(bookDatabase->head);
+				break;
+			case 8:
+				SetBookData(SetHaveRead, bookDatabase->head);
+				break;
+			case 9:
+				SetBookData(SetIsInterested, bookDatabase->head);
+				break;
+			case 10:
+				SetBookData(SetBookCategory, bookDatabase->head);
 				break;
 			default:
 				printf("Please choose a valid option\n");

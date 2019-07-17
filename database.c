@@ -83,6 +83,7 @@ void PrintAllInterestedBooks(struct ListNode *head)
 
 void PrintAllBooksOfCategory(struct ListNode *head)
 {
+	DisplayCategories();
 	enum Category category = SetCategory();
 
 	char border[87] = {[0 ... 86] = '='};
@@ -143,6 +144,37 @@ void PrintBookById(struct ListNode *head)
 
 		curr = curr->next;
 	}
+}
+
+struct Book *GetBookById(unsigned int id, struct ListNode *head)
+{
+	struct ListNode *curr = head;
+	while (curr)
+	{
+		if(curr->data->id == id)
+			return curr->data;
+
+		curr = curr->next;
+	}
+
+	return NULL;
+}
+
+void SetBookData(void (*setFunc)(struct Book *book), struct ListNode *head)
+{
+	unsigned int id;
+
+	printf("enter book id\n");
+	scanf("%d", &id);
+
+	struct Book *book = GetBookById(id, head);
+	if(!book)
+	{
+		printf(ANSI_COLOR_RED "Error: book is null\n" ANSI_COLOR_RESET);
+		return;
+	}
+
+	setFunc(book);
 }
 
 void Add(struct Database *database, struct Book *book)

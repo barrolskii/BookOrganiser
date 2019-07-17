@@ -79,14 +79,17 @@ enum Category SetCategoryFromValue(unsigned int value)
 
 void DisplayCategories()
 {
-	printf("=======================================================\n");
+	char border[22] = {[0 ... 21] = '='};
+
+
+	printf("%s\n", border);
 
 	for(int i = 0; i < TOTAL_CATEGORIES; i++)
 	{
-		printf("|%s", categories[i]);
+		printf("| %-3d| %-14s|\n", i, categories[i]);
 	}
 
-	printf("\n=======================================================\n");
+	printf("%s\n", border);
 }
 
 void PrintBookData(struct Book *book)
@@ -96,19 +99,35 @@ void PrintBookData(struct Book *book)
 							book->isInterested, GetBookCategory(book));
 }
 
-void SetHaveRead(struct Book *book, bool state)
+void SetHaveRead(struct Book *book)
 {
-	book->haveRead = state;
+	book->haveRead = !book->haveRead;
+
+	printf(ANSI_COLOR_GREEN
+			"The book %s\n have read property has been set to %d from %d\n"
+		   ANSI_COLOR_RESET, book->name, book->haveRead, !book->haveRead);
 }
 
-void SetIsInterested(struct Book *book, bool state)
+void SetIsInterested(struct Book *book)
 {
-	book->isInterested = state;
+	book->isInterested = !book->isInterested;
+
+	printf(ANSI_COLOR_GREEN
+			"The book %s\n is interested property has been set to %d from %d\n"
+		   ANSI_COLOR_RESET, 
+		   book->name, book->isInterested, !book->isInterested);
 }
 
-void SetBookCategory(struct Book *book, enum Category category)
+void SetBookCategory(struct Book *book)
 {
-	book->category = category;
+	enum Category prevCat = book->category;
+
+	book->category = SetCategory();
+
+	printf(ANSI_COLOR_GREEN
+			"The book %s\n has had its category changed from %s to %s\n"
+		   ANSI_COLOR_RESET,
+			book->name, categories[prevCat], categories[book->category]);
 }
 
 const char *GetBookCategory(struct Book *book)
