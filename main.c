@@ -356,14 +356,16 @@ void DisplayMenu()
 		"Print book by ID",
 	};
 
-	printf("======================================\n");
+	char border[38] = {[0 ... 37] = '='};
+
+	printf("%s\n", border);
 
 	for(int i = 0; i < 8; i++)
 	{
 		printf("| %-3i| %-30s|\n", i, options[i]);
 	}
 
-	printf("======================================\n");
+	printf("%s\n", border);
 }
 
 void Test(struct Book book)
