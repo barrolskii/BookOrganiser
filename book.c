@@ -94,7 +94,7 @@ void DisplayCategories()
 
 void PrintBookData(struct Book *book)
 {
-	printf("| %-3u | %-30s | %-8s | %-5d | %-11d | %-11s |\n", 
+	printf("| %-3u | %-30s | %-8s | %-5d | %-11d | %-14s |\n", 
 							book->id, book->name, book->type, book->haveRead,
 							book->isInterested, GetBookCategory(book));
 }

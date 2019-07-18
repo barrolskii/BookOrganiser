@@ -210,6 +210,8 @@ char *GetSaveFile(const char *path)
 
 void AddSaveDataToDatabase(const char *path, struct Database *database)
 {
+	DebugPrintf(ANSI_COLOR_MAGENTA "AddSaveDataToDatabase\n" ANSI_COLOR_RESET);
+
 	if(access(path, F_OK) == 0)
 	{
 		DebugPrintf(ANSI_COLOR_GREEN "%s found\n" ANSI_COLOR_RESET, path);
@@ -232,9 +234,14 @@ void AddSaveDataToDatabase(const char *path, struct Database *database)
 
 			return;
 		}
+		else
+		{
+			DebugPrintf(ANSI_COLOR_ORANGE "Len is %d\n" ANSI_COLOR_RESET, len);
+			fseek(fp, 0, SEEK_SET);
+		}
 		
 
-		while(fgets(c, 128, fp) != NULL)
+		while(fgets(c, 148, fp) != NULL)
 		{
 			DebugPrintf(ANSI_COLOR_ORANGE "c: %s" ANSI_COLOR_RESET, c);
 

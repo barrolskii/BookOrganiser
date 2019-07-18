@@ -196,6 +196,8 @@ void Add(struct Database *database, struct Book *book)
 		database->head->next = NULL;
 		database->count++;
 
+		DebugPrintf(ANSI_COLOR_GREEN "Added book to list\n" ANSI_COLOR_RESET);
+
 		return;
 	}
 
@@ -203,6 +205,8 @@ void Add(struct Database *database, struct Book *book)
 	{
 		head = head->next;
 	}
+
+	DebugPrintf(ANSI_COLOR_ORANGE "Allocating book memory\n" ANSI_COLOR_RESET);
 
 	head->next = malloc(sizeof(struct ListNode));
 	head->next->data = book;
@@ -254,13 +258,13 @@ void DeleteDatabaseData(struct Database *database)
 
 void PrintRecords(void (*func)(struct ListNode *), struct ListNode *head)
 {
-	char border[87] = {[0 ... 86] = '='};
-	char line[87] = {[0 ... 86] = '-'};
+	char border[91] = {[0 ... 89] = '=', [90] = '\0'};
+	char line[91] = {[0 ... 89] = '-', [90] = '\0'};
 
 	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 
 
-	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-14s |\n",
 				"id", "name", "type", "Read", "Interested", "category");
 
 
@@ -278,7 +282,11 @@ int CheckBook(struct Database *database, const char *name)
 
 	struct ListNode *head = database->head;
 
-	if(!head) return -1;
+	if(!head)
+	{
+		DebugPrintf(ANSI_COLOR_RED "Head of list is null\n" ANSI_COLOR_RESET);
+		return -1;
+	}
 
 	while(head)
 	{
