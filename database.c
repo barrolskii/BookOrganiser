@@ -86,13 +86,13 @@ void PrintAllBooksOfCategory(struct ListNode *head)
 	DisplayCategories();
 	enum Category category = SetCategory();
 
-	char border[87] = {[0 ... 86] = '='};
-	char line[87] = {[0 ... 86] = '-'};
+	char border[91] = {[0 ... 89] = '=', [90] = '\0'};
+	char line[91] = {[0 ... 89] = '-', [90] = '\0'};
 
 	printf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, border);
 
 
-	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-11s |\n",
+	printf("| %-3s | %-30s | %-8s | %-5s | %-11s | %-14s |\n",
 				"id", "name", "type", "Read", "Interested", "category");
 
 
