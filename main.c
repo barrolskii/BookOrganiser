@@ -65,19 +65,30 @@ void OrganiseBooks(const char *path)
 	DIR *dir;
 	struct dirent *ent;
 
+	printf("In new organise books func\n");
+
 	if((dir = opendir(path)) != NULL)
 	{
 		printf(ANSI_COLOR_GREEN "Directory %s found\n" ANSI_COLOR_RESET, path);
 
+		char oldFilePath[256] = {0};
+		char newFilePath[256] = {0};
+
 		char name[128] = {0};
 
-		// Print all regular files within the given directory
 		while((ent = readdir(dir)) != NULL)
 		{
 			if(ent->d_type == DT_REG)
 			{
+				strcat(oldFilePath, path);
+				strcat(oldFilePath, ent->d_name);
+
+				DebugPrintf(ANSI_COLOR_ORANGE "ofp: %s\n" ANSI_COLOR_RESET, 
+																oldFilePath);
+
 				strncpy(name, ent->d_name, 128);
-				printf("name: %s\n", name);
+				DebugPrintf(ANSI_COLOR_ORANGE "name: %s\n" ANSI_COLOR_RESET, 
+																		name);
 
 				char *extension = NULL;
 				extension = strrchr(name, '.');
@@ -89,44 +100,25 @@ void OrganiseBooks(const char *path)
 
 				DisplayCategories();
 				enum Category category = SetCategory();
+			
+				strcat(newFilePath, path);
+				strcat(newFilePath, categories[category]);
+				strcat(newFilePath, "/");
+				strcat(newFilePath, ent->d_name);
 
-				// Move book to category directory
-				char pathToMove[128];
-				strncpy(pathToMove, path, 128);
-				DebugPrintf(ANSI_COLOR_CYAN "ptm: %s\n" ANSI_COLOR_RESET,
-															pathToMove);
+				DebugPrintf(ANSI_COLOR_ORANGE "nfp: %s\n" ANSI_COLOR_RESET,
+																newFilePath);
 
-				// Concatenate category directory based on the input
-				// category from the SetCategory() call
-				strcat(pathToMove, categories[category]);
-				DebugPrintf(ANSI_COLOR_CYAN "ptm: %s\n" ANSI_COLOR_RESET,
-															pathToMove);
+				rename(oldFilePath, newFilePath);
 
-				char mvCmd[256] = "mv ";
-
-				// Concat the current file to the current path
-				char file[128] = {0};
-				strcat(file, path);
-				strcat(file, name);
-				DebugPrintf(ANSI_COLOR_CYAN "file %s\n" ANSI_COLOR_RESET, file);
-
-				// Concat the file with its path to the move command
-				strcat(mvCmd, file);
-				strcat(mvCmd, " ");
-				strcat(mvCmd, pathToMove);
-				DebugPrintf(ANSI_COLOR_CYAN "%s\n" ANSI_COLOR_RESET, mvCmd);
-
-				strncpy(file, "", 128);
-				system(mvCmd); 
+				strncpy(oldFilePath, "", 256);
+				strncpy(newFilePath, "", 256);
 			}
 		}
-
 		closedir(dir);
 	}
 	else
-	{
-		printf(ANSI_COLOR_RED "Could not open directory\n" ANSI_COLOR_RED);
-	}
+	printf(ANSI_COLOR_RED "Dir not found\n" ANSI_COLOR_RESET);
 }
 
 void CheckIfSaveFileExists(const char *path)
