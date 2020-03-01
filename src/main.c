@@ -15,6 +15,7 @@
 char *parent_path = NULL;
 koios_state state = {};
 
+
 // {{{
 // From https://gitlab.com/finnoleary/koios/-/blob/master/koios.c 
 // I can't take any credit for this function.
@@ -76,8 +77,10 @@ static char *mkpath_(char *s, ...)
 
 	return d;
 }
+// }}}
 
 
+// {{{ Initalisation functions
 void init(char *path)
 {
 	// Directory called books to contain, you guessed it, all the users books
@@ -99,10 +102,7 @@ void init(char *path)
 		printf(ANSI_COLOR_GREEN "Books directory already exists\n" ANSI_COLOR_RESET);
 	}
 }
-// }}}
 
-
-// {{{
 void move_files()
 {
 	// Array storing all the divisions to make it easier to pass
@@ -282,9 +282,13 @@ void check_koios_tags(char *config_path)
 	// Save the changes to the database
 	koios_cfg_store(&state, config_path);
 }
+// }}}
+
+
+// {{{ Menu functions XXX: BROKEN!!!
 
 // koios_tag *tag, koios_mask *mask, char *path, DIR *dir
-void test_get_books(koios_state *state, koios_tag *tag, koios_mask *mask, char *file_path, char *path, DIR *dir)
+void test_get_books(koios_tag *tag, koios_mask *mask, char *file_path, char *books_path, DIR *dir)
 {
 	char tag_name[128] = {0};
 	struct dirent *entry = NULL;
@@ -294,22 +298,22 @@ void test_get_books(koios_state *state, koios_tag *tag, koios_mask *mask, char *
 	scanf("%s", tag_name);
 
 	printf("tag_name: %s\n", tag_name);
-	koios_name_find(state, tag_name, tag);
+	koios_name_find(&state, tag_name, tag);
 
 
 	while ((entry = readdir(dir)) != NULL)
 	{
 		if (entry->d_type == DT_REG)
 		{
-			strcat(file_path, path);
+			strcat(file_path, books_path);
 			strcat(file_path, entry->d_name);
 
 			// Create a fresh mask and load the current files tag mask in
-			koios_mask_new(state, mask);
-			koios_mask_load(state, mask, file_path);
+			koios_mask_new(&state, mask);
+			koios_mask_load(&state, mask, file_path);
 
 			// Check if the file contains the tag mask and print it
-			int contains = koios_tag_maskcontains(state, mask, *tag);
+			int contains = koios_tag_maskcontains(&state, mask, *tag);
 			if (contains) printf("%s\n", entry->d_name);
 
 			// Cleanup for the next iteration
@@ -320,7 +324,7 @@ void test_get_books(koios_state *state, koios_tag *tag, koios_mask *mask, char *
 
 }
 
-void test_template(koios_state *state, char *path, void (*fun)(koios_state *, koios_tag *, koios_mask *,  char *, char *, DIR *))
+void test_template(char *books_path, void (*fun)(koios_tag *, koios_mask *,  char *, char *, DIR *))
 {
 	koios_tag tag;
 	koios_mask mask;
@@ -330,9 +334,9 @@ void test_template(koios_state *state, char *path, void (*fun)(koios_state *, ko
 	DIR *dir = NULL;
 
 
-	if ((dir = opendir(path)) != NULL)
+	if ((dir = opendir(books_path)) != NULL)
 	{
-		fun(state, &tag, &mask, file_path, path, dir);
+		fun(&tag, &mask, file_path, books_path, dir);
 	}
 
 
@@ -385,7 +389,7 @@ void get_books_by_tag(char *path)
 	closedir(dir);
 }
 
-void get_books_by_class(char *path)
+void get_books_by_class(koios_state *state, char *path)
 {
 	koios_tag tag;
 	koios_mask mask;
@@ -402,7 +406,7 @@ void get_books_by_class(char *path)
 	scanf("%d", &input);
 
 	printf("Chosen class: %s\n", main_classes[input - 1]);
-	koios_name_find(&state, main_classes[input - 1], &tag);
+	koios_name_find(state, main_classes[input - 1], &tag);
 
 	if ((dir = opendir(path)) != NULL)
 	{
@@ -414,11 +418,11 @@ void get_books_by_class(char *path)
 				strcat(file_path, entry->d_name);
 
 				// Create a fresh mask and load the current files tag mask in
-				koios_mask_new(&state, &mask);
-				koios_mask_load(&state, &mask, file_path);
+				koios_mask_new(state, &mask);
+				koios_mask_load(state, &mask, file_path);
 
 				// Check if the file contains the tag mask and print it
-				int contains = koios_tag_maskcontains(&state, &mask, tag);
+				int contains = koios_tag_maskcontains(state, &mask, tag);
 				if (contains) printf("%s\n", entry->d_name);
 
 				// Cleanup for the next iteration
@@ -540,8 +544,80 @@ void set_books_to_read(char *path)
 	koios_mask_save(&state, &mask, file_path);
 	koios_mask_del(&mask);
 }
+// }}}
+
+
+// {{{ New functions
+
+void new_get_books_by_class(char *books_path, koios_mask *mask)
+{	
+	koios_tag tag;
+
+	char file_path[128] = {0};
+
+	DIR *dir = NULL;
+	struct dirent *entry = NULL;
+
+	int input = 0;
+
+	// Show the user the selection of classes
+	printf("Select a class\n");
+	print_border(print_str_array, main_classes, TOTAL_CLASSES);
+
+
+	scanf("%d", &input);
+	printf("input: %d\n", input);
+
+	printf("Chosen class: %s\n", main_classes[input - 1]);
+	koios_name_find(&state, main_classes[input - 1], &tag);
+
+	if ((dir = opendir(books_path)) != NULL)
+	{
+		while ((entry = readdir(dir)) != NULL)
+		{
+			if (entry->d_type == DT_REG)
+			{
+				// Concatenate the current file to the end of the books directory path
+				// to get the full file path
+				strcat(file_path, books_path);
+				strcat(file_path, entry->d_name);
+
+				printf("file path: %s\n", file_path);
+
+				// Load the current files mask
+				int ml = koios_mask_load(&state, mask, file_path);
+				printf("mask load: %d\n", ml);
+				printf("Error: %s\n", koios_errstr(ml));
+
+				// Check if the file contains the tag mask and print it
+				int contains = koios_tag_maskcontains(&state, mask, tag);
+				if (contains) printf("%s\n", entry->d_name);
+
+				memset(file_path, 0, 128);
+			}
+		}
+	}
+
+	closedir(dir);
+}
+
+/*
+
+	char *tag_name = "Computer_Science";
+
+	printf("tag: %s\n", tag_name);
+	int nf = koios_name_find(&state, tag_name, &tag);
+	printf("nf: %d\n", nf);
+
+				int con = koios_tag_maskcontains(&state, mask, tag);
+				printf("con: %d\n", con);
+
+				if (con == 1) printf("Con true: %s\n", entry->d_name);
+
+*/
 
 // }}}
+
 
 int main(int argc, char **argv)
 {
@@ -577,6 +653,13 @@ int main(int argc, char **argv)
 	strcat(books_path, parent_path);
 	strcat(books_path, "books/");
 
+
+	koios_mask mask;
+	int mn = koios_mask_new(&state, &mask);
+	printf("mask new %d\n", mn);
+	printf("Error: %s\n", koios_errstr(mn));
+
+
 	// Main loop
 	char input;
 	int int_input;
@@ -599,24 +682,25 @@ int main(int argc, char **argv)
 			case 1:
 				printf("Get books by tag called\n");
 
-				test_template(&state, books_path, test_get_books);
+				//test_template(books_path, test_get_books);
 				//get_books_by_tag(books_path);
 				break;
 			case 2:
 				printf("Get books by class\n");
-				get_books_by_class(books_path);
+				new_get_books_by_class(books_path, &mask);
+				//get_books_by_class(&state, books_path);
 				break;
 			case 3:
 				printf("Add tag to book\n");
-				add_tag_to_book(books_path);
+				//add_tag_to_book(books_path);
 				break;
 			case 4:
 				printf("Show books to read\n");
-				show_books_to_read(books_path);
+				//show_books_to_read(books_path);
 				break;
 			case 5:
 				printf("Set books to read\n");
-				set_books_to_read(books_path);
+				//set_books_to_read(books_path);
 				break;
 			default:
 				printf("Please enter a valid number\n");
@@ -629,6 +713,10 @@ int main(int argc, char **argv)
 	koios_cfg_close(&state);
 
 	free(config_path);
+
+	int md = koios_mask_del(&mask);
+	printf("mask del: %d\n", md);
+
 
 	return 0;
 }
