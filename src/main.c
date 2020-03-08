@@ -286,7 +286,7 @@ void check_koios_tags(char *config_path)
 // }}}
 
 
-// {{{ Menu functions XXX: BROKEN!!!
+// {{{ Template tests
 
 // koios_tag *tag, koios_mask *mask, char *path, DIR *dir
 void test_get_books(koios_tag *tag, koios_mask *mask, char *file_path, char *books_path, DIR *dir)
@@ -343,93 +343,10 @@ void test_template(char *books_path, void (*fun)(koios_tag *, koios_mask *,  cha
 
 	closedir(dir);
 }
-
-void add_tag_to_book(char *path)
-{
-	koios_tag tag;
-	koios_mask mask;
-
-	char file_name[128] = {0};
-	char file_path[128] = {0};
-	char new_tag[128]	= {0};
-
-	printf("Enter book you want to add a new tag to\n");
-	scanf("%s", file_name);
-
-	printf("Enter the tag you want to add\n");
-	scanf("%s", new_tag);
-
-	strcat(file_path, path);
-	strcat(file_path, file_name);
-
-
-	int exists = koios_name_find(&state, new_tag, &tag);
-	printf("exists %d\n", exists);
-	if (!exists)
-	{
-		printf("Tag does not exist\n");
-		return;
-	}
-
-	koios_mask_new(&state, &mask);
-	koios_mask_load(&state, &mask, file_path);
-
-	int contains = koios_tag_maskcontains(&state, &mask, tag);
-	if (!contains) koios_tag_addtomask(&state, &mask, tag);
-
-	koios_mask_save(&state, &mask, file_path);
-	koios_mask_del(&mask);
-}
-
 // }}}
 
 
-/*
-
-void set_books_to_read(char *path)
-{
-	koios_tag tag;
-	koios_mask mask;
-
-	char file_name[128] = {0};
-	char file_path[128] = {0};
-
-	char *tag_name = "To_Read";
-	
-
-	printf("Enter book you want to set to read\n");
-	scanf("%s", file_name);
-
-	strcat(file_path, path);
-	strcat(file_path, file_name);
-
-
-	koios_name_find(&state, tag_name, &tag);
-
-	koios_mask_new(&state, &mask);
-	koios_mask_load(&state, &mask, file_path);
-
-	int contains = koios_tag_maskcontains(&state, &mask, tag);
-	if (!contains) koios_tag_addtomask(&state, &mask, tag);
-
-	koios_mask_save(&state, &mask, file_path);
-	koios_mask_del(&mask);
-}
-
-*/
-
-
-//add_tag_to_book(books_path);
-
-
-// {{{ New functions
-
-
-void template()
-{
- // TODO: Implement
-}
-
+// {{{ Menu functions
 
 void get_books_by_tag(char *books_path)
 {
@@ -473,7 +390,7 @@ void get_books_by_tag(char *books_path)
 	closedir(dir);
 }
 
-void new_get_books_by_class(char *books_path)
+void get_books_by_class(char *books_path)
 {	
 	koios_tag tag;
 
@@ -525,6 +442,38 @@ void new_get_books_by_class(char *books_path)
 	closedir(dir);
 }
 
+void add_tag_to_book(char *books_path)
+{
+	koios_tag tag;
+
+	char file_name[128] = {0};
+	char file_path[128] = {0};
+	char new_tag[128]	= {0};
+
+	printf("Enter book you want to add a new tag to\n");
+	scanf("%s", file_name);
+
+	printf("Enter the tag you want to add\n");
+	scanf("%s", new_tag);
+
+	strcat(file_path, books_path);
+	strcat(file_path, file_name);
+
+	int exists = koios_name_find(&state, new_tag, &tag);
+	printf("exists %d\n", exists);
+	if (!exists)
+	{
+		printf("Tag does not exist\n");
+		return;
+	}
+
+	koios_mask_load(&state, &mask, file_path);
+
+	int contains = koios_tag_maskcontains(&state, &mask, tag);
+	if (!contains) koios_tag_addtomask(&state, &mask, tag);
+
+	koios_mask_save(&state, &mask, file_path);
+}
 
 void show_books_to_read(char *books_path)
 {
@@ -566,7 +515,6 @@ void show_books_to_read(char *books_path)
 	closedir(dir);
 }
 
-
 void set_books_to_read(char *books_path)
 {
 	koios_tag tag;
@@ -592,21 +540,6 @@ void set_books_to_read(char *books_path)
 
 	koios_mask_save(&state, &mask, file_path);
 }
-
-/*
-
-	char *tag_name = "Computer_Science";
-
-	printf("tag: %s\n", tag_name);
-	int nf = koios_name_find(&state, tag_name, &tag);
-	printf("nf: %d\n", nf);
-
-				int con = koios_tag_maskcontains(&state, mask, tag);
-				printf("con: %d\n", con);
-
-				if (con == 1) printf("Con true: %s\n", entry->d_name);
-
-*/
 
 // }}}
 
@@ -678,11 +611,11 @@ int main(int argc, char **argv)
 				break;
 			case 2:
 				printf("Get books by class\n");
-				new_get_books_by_class(books_path);
+				get_books_by_class(books_path);
 				break;
 			case 3:
 				printf("Add tag to book\n");
-				//add_tag_to_book(books_path);
+				add_tag_to_book(books_path);
 				break;
 			case 4:
 				printf("Show books to read\n");
