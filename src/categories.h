@@ -8,7 +8,7 @@
 
 char *menu_options[MENU_OPTIONS_SIZE] = {
 	"Get books by tag",
-	"Get books by type",
+	"Get books by class",
 	"Add tag to book",
 	"Show books to read",
 	"Set books to read"
@@ -165,6 +165,24 @@ char *division_nine[9] = {
 	"General_history_of_South_America",
 	"General_history_of_other_areas"
 };
+
+
+// Store all the divisions in one array just incase you need to
+// iterate over all the arrays. Saves redeclaring this array for
+// each instance
+char **divisions[10] = {
+	division_zero,
+	division_one,
+	division_two,
+	division_three,
+	division_four,
+	division_five,
+	division_six,
+	division_seven,
+	division_eight,
+	division_nine
+};
+
 
 #endif // CATEGORIES_H
 

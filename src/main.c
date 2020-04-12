@@ -6,6 +6,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include <readline/readline.h>
+
 #include "utils.h"
 #include "categories.h"
 #include "terminalColors.h"
@@ -13,6 +15,15 @@
 
 // Path to parent directory where all books are stored
 char *parent_path = NULL;
+
+// Division index. This is used for the division auto complete function
+// so that we don't have dupliacte functions for each division
+// There is probably a better way to pass the division but for now
+// this works well
+unsigned int div_index = 0;
+
+char **tag_list = NULL; 
+char **book_list = NULL;
 
 koios_state state = {};
 koios_mask mask = {};
@@ -106,22 +117,6 @@ void init(char *path)
 
 void move_files()
 {
-	// Array storing all the divisions to make it easier to pass
-	// to the print border function wrapper
-	char **divisions[10] = {
-		division_zero,
-		division_one,
-		division_two,
-		division_three,
-		division_four,
-		division_five,
-		division_six,
-		division_seven,
-		division_eight,
-		division_nine
-	};
-
-
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
 
@@ -182,6 +177,7 @@ void move_files()
 				koios_name_find(&state, divisions[class_input - 1][division_input - 1], &tag);
 				koios_tag_addtomask(&state, &mask, tag);
 
+
 				// Save the masks to the file
 				koios_mask_save(&state, &mask, old_path);
 
@@ -232,20 +228,6 @@ void check_koios_tags(char *config_path)
 		}
 	}
 
-	// Now check the remaining divisons
-	char **divisions[10] = {
-		division_zero,
-		division_one,
-		division_two,
-		division_three,
-		division_four,
-		division_five,
-		division_six,
-		division_seven,
-		division_eight,
-		division_nine
-	};
-
 	for (i = 0; i < 10; i++)
 	{
 		for (int j = 0; j < TOTAL_DIVISIONS; j++)
@@ -283,6 +265,107 @@ void check_koios_tags(char *config_path)
 	// Save the changes to the database
 	koios_cfg_store(&state, config_path);
 }
+// }}}
+
+
+// Auto completion functions {{{
+
+char *tag_name_generator(const char *text, int state)
+{
+	static int list_index, len;
+	char *name = NULL;
+
+	if (!state)
+	{
+		list_index = 0;
+		len = strlen(text);
+	}
+
+	while((name = tag_list[list_index++]))
+	{
+		if (strncmp(name, text, len) == 0)
+			return strdup(name);
+	}
+
+	return NULL;
+}
+
+char **tag_name_completion(const char *text, int start, int end)
+{
+	rl_attempted_completion_over = 1;
+	return rl_completion_matches(text, tag_name_generator);
+}
+
+char *book_name_generator(const char *text, int state)
+{
+	static int list_index, len;
+	char *name = NULL;
+
+	if (!state)
+	{
+		list_index = 0;
+		len = strlen(text);
+	}
+
+	while((name = book_list[list_index++]))
+	{
+		if (strncmp(name, text, len) == 0)
+			return strdup(name);
+	}
+
+	return NULL;
+}
+
+char **book_name_completion(const char *text, int start, int end)
+{
+	rl_attempted_completion_over = 1;
+	return rl_completion_matches(text, book_name_generator);
+}
+
+	/*
+	 * TESTING CODE
+	 */
+
+/*	printf("%s\n", test[div_index][0]);
+
+	rl_attempted_completion_function = division_name_completion;
+
+	printf("Enter a division name\n");
+
+	char *buffer = readline(">> ");
+
+	int length = strlen(buffer);
+	char *last_char = &buffer[length - 1];
+
+	printf("last_char: %d\n", *last_char);
+
+	if (*last_char == 32)
+	{
+		char new_word[length - 1];
+		for (int i = 0; i < length -1; i++)
+		{
+			new_word[i] = buffer[i];
+		}
+
+		printf("new_word: %s:\n", new_word);
+	}
+
+
+	if (buffer)
+	{
+		printf("You entered: %s:\n", buffer);
+		free(buffer);
+	}
+
+
+	return 0;*/
+
+
+	/*
+	 * END TESTING CODE
+	 */
+
+
 // }}}
 
 
@@ -544,6 +627,136 @@ void set_books_to_read(char *books_path)
 // }}}
 
 
+// Config functions {{{
+
+unsigned int get_koios_tag_count(char *path)
+{
+	char str[256];
+	unsigned int tag_count = 0;
+
+	FILE *fp = fopen(path, "r");
+
+	if(!fp)
+	{
+		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
+		return tag_count;
+	}
+
+	while(fgets(str, 256, fp) != NULL)
+	{
+		// The config file is populated with lots of lines that
+		// are just a single newline character. So once we hit
+		// the first line containing only the newline character
+		// then we are done counting the tags
+		if (strlen(str) < 2) break;
+
+		tag_count++;
+	}
+
+	fclose(fp);
+
+	// Decrement the tag count as the first line of the config 
+	// file is not a tag
+	tag_count--;
+
+	return tag_count;
+}
+
+void populate_tag_list(char **list, int size, char *path)
+{
+	char str[256];
+	int length = 0;
+
+	FILE *fp = fopen(path, "r");
+
+	if(!fp)
+	{
+		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
+		return;
+	}
+
+	// Skip the first line in the file
+	fgets(str, 256, fp);
+
+	for (int i = 0; i < size; i++)
+	{
+		fgets(str, 256, fp);
+
+
+		length = strlen(str);
+
+		if (str[length - 1] == 10) str[length - 1] = '\0';
+
+		list[i] = malloc(sizeof(char) * length);
+		strcpy(list[i], str);
+		memset(str, 0, 256);
+	}	
+
+	list[size] = NULL;
+
+	fclose(fp);
+}
+
+void populate_book_list(char **list, int size, char *path)
+{
+	DIR *dir = NULL;
+	struct dirent *entry = NULL;
+
+	int i = 0;
+
+
+	if ((dir = opendir(path)) != NULL)
+	{
+		while ((entry = readdir(dir)) != NULL)
+		{
+			if (entry->d_type == DT_REG)
+			{
+				int length = strlen(entry->d_name);
+
+				list[i] = malloc((sizeof(char) * length) + 1);
+				strcpy(list[i], entry->d_name);
+
+				i++;
+			}
+		}
+	}
+
+	list[i] = NULL;
+}
+
+void get_tag()
+{
+	rl_attempted_completion_function = tag_name_completion;
+
+	printf("Enter a tag\n");
+
+	char *buffer = readline(">> ");
+
+	if (buffer)
+	{
+		printf("You entered: %s:\n", buffer);
+		free(buffer);
+	}
+}
+
+void get_book()
+{
+	rl_attempted_completion_function = book_name_completion;
+
+	printf("Enter a book\n");
+
+	char *buffer = readline(">> ");
+
+	if (buffer)
+	{
+		printf("You entered: %s:\n", buffer);
+		free(buffer);
+	}
+}
+
+// }}}
+
+
 int main(int argc, char **argv)
 {
 	if (argc == 1)
@@ -583,6 +796,32 @@ int main(int argc, char **argv)
 	strcat(books_path, parent_path);
 	strcat(books_path, "books/");
 
+
+	unsigned int tag_count = get_koios_tag_count(config_path);
+
+	// Increment tag count so that the tag list will have NULL
+	// as its very last element for the autocompletion
+	tag_count++;
+
+	printf("tag_count: %d\n", tag_count);
+
+	// Allocate enough memory for the list of tags
+	tag_list = malloc(sizeof(char*) * tag_count);
+	populate_tag_list(tag_list, tag_count, config_path);
+
+
+	unsigned int book_count = count_files_in_directory(books_path);
+	printf("book_count: %d\n", book_count);
+
+	// Same as the tag count, increment value for the last NULL element
+	book_count++;
+
+	book_list = malloc(sizeof(char*) * book_count);
+	populate_book_list(book_list, book_count, books_path);
+
+
+	get_tag();
+	get_book();
 
 	// Main loop
 	char input;
@@ -631,6 +870,19 @@ int main(int argc, char **argv)
 
 	}
 
+	int i = 0;
+
+	for (i; i < tag_count; i++)
+	{
+		free(tag_list[i]);
+	}
+	free(tag_list);
+
+	for (i = 0; i < book_count; i++)
+	{
+		free(book_list[i]);
+	}
+	free(book_list);
 
 	// Clean up the koios state when we're done
 	koios_cfg_close(&state);
