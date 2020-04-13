@@ -27,6 +27,8 @@ unsigned int div_index = 0;
 char **tag_list = NULL; 
 char **book_list = NULL;
 
+int debug_enabled = 0;
+
 koios_state state = {};
 koios_mask mask = {};
 
@@ -91,6 +93,21 @@ static char *mkpath_(char *s, ...)
 
 	return d;
 }
+
+int debug_printf(const char *format, ...)
+{
+	if (!debug_enabled) return 0;
+
+	va_list arg;
+	int done;
+
+	va_start(arg, format);
+	done = vfprintf(stdout, format, arg);
+	va_end(arg);
+
+	return done;
+}
+
 // }}}
 
 
@@ -108,12 +125,12 @@ void init(char *path)
 	// If function returns a negative then create the directory
 	if (check_directory_exists(books_dir))
 	{
-		printf(ANSI_COLOR_RED "Books dir doesn't exist\n" ANSI_COLOR_RESET);
+		debug_printf(ANSI_COLOR_RED "Books dir doesn't exist\n" ANSI_COLOR_RESET);
 		create_directory(books_dir);
 	}
 	else
 	{
-		printf(ANSI_COLOR_GREEN "Books directory already exists\n" ANSI_COLOR_RESET);
+		debug_printf(ANSI_COLOR_GREEN "Books directory already exists\n" ANSI_COLOR_RESET);
 	}
 }
 
@@ -152,8 +169,8 @@ void move_files()
 				printf("File: %s\n", entry->d_name);
 				printf("Please select a class for the book\n");
 
-				printf("new path: %s\n", new_path);
-				printf("old path: %s\n", old_path);
+				debug_printf("new path: %s\n", new_path);
+				debug_printf("old path: %s\n", old_path);
 
 				// print classes first
 				print_border(print_str_array, main_classes, TOTAL_CLASSES);
@@ -213,7 +230,7 @@ int add_koios_tag_to_database(koios_state *state, char *tag_name, char *path)
 
 void check_koios_tags(char *config_path)
 {
-	printf(ANSI_COLOR_GREEN "Checking tags\n" ANSI_COLOR_RESET);
+	debug_printf(ANSI_COLOR_GREEN "Checking tags\n" ANSI_COLOR_RESET);
 
 	koios_tag tag;
 
@@ -226,7 +243,7 @@ void check_koios_tags(char *config_path)
 		}
 		else
 		{
-			printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, main_classes[i]);
+			debug_printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, main_classes[i]);
 		}
 	}
 
@@ -240,7 +257,7 @@ void check_koios_tags(char *config_path)
 			}
 			else
 			{
-				printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, divisions[i][j]);
+				debug_printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, divisions[i][j]);
 			}
 		}
 	}
@@ -816,8 +833,8 @@ int main(int argc, char **argv)
 	koios_cfg_open(&state, config_path);
 
 	int mn = koios_mask_new(&state, &mask);
-	printf("mask new %d\n", mn);
-	printf("Error: %s\n", koios_errstr(mn));
+	debug_printf("mask new %d\n", mn);
+	debug_printf("Error: %s\n", koios_errstr(mn));
 
 	init(parent_path);
 	check_koios_tags(config_path);
@@ -843,7 +860,7 @@ int main(int argc, char **argv)
 	// as its very last element for the autocompletion
 	tag_count++;
 
-	printf("tag_count: %d\n", tag_count);
+	debug_printf("tag_count: %d\n", tag_count);
 
 	// Allocate enough memory for the list of tags
 	tag_list = malloc(sizeof(char*) * tag_count);
@@ -851,7 +868,7 @@ int main(int argc, char **argv)
 
 
 	unsigned int book_count = count_files_in_directory(books_path);
-	printf("book_count: %d\n", book_count);
+	debug_printf("book_count: %d\n", book_count);
 
 	// Same as the tag count, increment value for the last NULL element
 	book_count++;
@@ -860,13 +877,6 @@ int main(int argc, char **argv)
 	populate_book_list(book_list, book_count, books_path);
 
 
-	char *mytag = get_tag();
-	printf("mytag: %s:\n", mytag);
-	free(mytag);
-
-	char *mybook = get_book();
-	printf("mybook: %s:\n", mybook);
-	free(mybook);
 
 	// Main loop
 	char input;
@@ -889,8 +899,6 @@ int main(int argc, char **argv)
 		{
 			case 1:
 				printf("Get books by tag called\n");
-
-				//test_template(books_path, test_get_books);
 				get_books_by_tag(books_path);
 				break;
 			case 2:
