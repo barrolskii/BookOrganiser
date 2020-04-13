@@ -119,7 +119,7 @@ void init(char *path)
 	strcat(books_dir, path);
 	strcat(books_dir, "books");
 
-	printf("path: %s\n", books_dir);
+	debug_printf("path: %s\n", books_dir);
 
 	// Check if the book directory already exists
 	// If function returns a negative then create the directory
@@ -275,11 +275,11 @@ void check_koios_tags(char *config_path)
 		}
 		else
 		{
-			printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, other_tags[i]);
+			debug_printf(ANSI_COLOR_RED "Tag: %s already exists\n" ANSI_COLOR_RESET, other_tags[i]);
 		}
 	}
 
-	printf(ANSI_COLOR_GREEN "Finished checking tags\n" ANSI_COLOR_RESET);
+	debug_printf(ANSI_COLOR_GREEN "Finished checking tags\n" ANSI_COLOR_RESET);
 
 	// Save the changes to the database
 	koios_cfg_store(&state, config_path);
@@ -340,50 +340,6 @@ char **book_name_completion(const char *text, int start, int end)
 	rl_attempted_completion_over = 1;
 	return rl_completion_matches(text, book_name_generator);
 }
-
-	/*
-	 * TESTING CODE
-	 */
-
-/*	printf("%s\n", test[div_index][0]);
-
-	rl_attempted_completion_function = division_name_completion;
-
-	printf("Enter a division name\n");
-
-	char *buffer = readline(">> ");
-
-	int length = strlen(buffer);
-	char *last_char = &buffer[length - 1];
-
-	printf("last_char: %d\n", *last_char);
-
-	if (*last_char == 32)
-	{
-		char new_word[length - 1];
-		for (int i = 0; i < length -1; i++)
-		{
-			new_word[i] = buffer[i];
-		}
-
-		printf("new_word: %s:\n", new_word);
-	}
-
-
-	if (buffer)
-	{
-		printf("You entered: %s:\n", buffer);
-		free(buffer);
-	}
-
-
-	return 0;*/
-
-
-	/*
-	 * END TESTING CODE
-	 */
-
 
 // }}}
 
@@ -846,7 +802,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		printf("No new files have been found\n");
+		debug_printf("No new files have been found\n");
 	}
 
 	char books_path[128] = {0};
@@ -943,7 +899,7 @@ int main(int argc, char **argv)
 	free(config_path);
 
 	int md = koios_mask_del(&mask);
-	printf("mask del: %d\n", md);
+	debug_printf("mask del: %d\n", md);
 
 
 	return 0;
