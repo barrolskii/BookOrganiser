@@ -445,7 +445,7 @@ char *get_tag()
 {
 	rl_attempted_completion_function = tag_name_completion;
 
-	printf("Enter a tag\n");
+	debug_printf("Enter a tag\n");
 
 	char *buffer = readline(">> ");
 	int length = strlen(buffer) - 1;
@@ -471,7 +471,7 @@ char *get_book()
 {
 	rl_attempted_completion_function = book_name_completion;
 
-	printf("Enter a book\n");
+	debug_printf("Enter a book\n");
 
 	char *buffer = readline(">> ");
 	int length = strlen(buffer) - 1;
@@ -560,18 +560,20 @@ void test_template(char *books_path, void (*fun)(koios_tag *, koios_mask *,  cha
 
 void get_books_by_tag(char *books_path)
 {
+	debug_printf("Get books by tag called\n");
+
 	koios_tag tag;
 
-	char tag_name[128] = {0};
-	char file_path[128] = {0};
+	char *tag_name = NULL;
+	char file_path[256] = {0};
 
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
 
 	printf("Enter tag name you want to seach by\n");
-	scanf("%s", tag_name);
+	tag_name = get_tag();
 
-	printf("tag_name: %s\n", tag_name);
+	debug_printf("tag_name: %s\n", tag_name);
 	koios_name_find(&state, tag_name, &tag);
 
 
@@ -598,10 +600,13 @@ void get_books_by_tag(char *books_path)
 	}
 
 	closedir(dir);
+	free(tag_name);
 }
 
 void get_books_by_class(char *books_path)
 {	
+	debug_printf("Get books by class\n");
+
 	koios_tag tag;
 
 	char file_path[128] = {0};
@@ -617,9 +622,9 @@ void get_books_by_class(char *books_path)
 
 
 	scanf("%d", &input);
-	printf("input: %d\n", input);
+	debug_printf("input: %d\n", input);
 
-	printf("Chosen class: %s\n", main_classes[input - 1]);
+	debug_printf("Chosen class: %s\n", main_classes[input - 1]);
 	koios_name_find(&state, main_classes[input - 1], &tag);
 
 	if ((dir = opendir(books_path)) != NULL)
@@ -633,12 +638,12 @@ void get_books_by_class(char *books_path)
 				strcat(file_path, books_path);
 				strcat(file_path, entry->d_name);
 
-				printf("file path: %s\n", file_path);
+				debug_printf("file path: %s\n", file_path);
 
 				// Load the current files mask
 				int ml = koios_mask_load(&state, &mask, file_path);
-				printf("mask load: %d\n", ml);
-				printf("Error: %s\n", koios_errstr(ml));
+				debug_printf("mask load: %d\n", ml);
+				debug_printf("Error: %s\n", koios_errstr(ml));
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
@@ -654,6 +659,8 @@ void get_books_by_class(char *books_path)
 
 void add_tag_to_book(char *books_path)
 {
+	debug_printf("Add tag to book\n");
+
 	koios_tag tag;
 
 	char *file_name = NULL;
@@ -671,12 +678,10 @@ void add_tag_to_book(char *books_path)
 	new_tag = get_tag();
 
 	strcat(file_path, books_path);
-	printf("first cat: %s\n", file_path);
 	strcat(file_path, file_name);
-	printf("second cat: %s\n", file_path);
 
 	int exists = koios_name_find(&state, new_tag, &tag);
-	printf("exists %d\n", exists);
+	debug_printf("exists %d\n", exists);
 	if (!exists)
 	{
 		printf("Tag does not exist\n");
@@ -701,6 +706,8 @@ void add_tag_to_book(char *books_path)
 
 void show_books_to_read(char *books_path)
 {
+	debug_printf("Show books to read\n");
+
 	koios_tag tag;
 
 	char file_path[128] = {0};
@@ -741,15 +748,17 @@ void show_books_to_read(char *books_path)
 
 void set_books_to_read(char *books_path)
 {
+	debug_printf("Set books to read\n");
+
 	koios_tag tag;
 
-	char file_name[128] = {0};
+	char *file_name = NULL;
 	char file_path[128] = {0};
 
 	char *tag_name = "To_Read";
 
 	printf("Enter book you want to set to read\n");
-	scanf("%s", file_name);
+	file_name = get_book();
 
 	strcat(file_path, books_path);
 	strcat(file_path, file_name);
@@ -763,11 +772,11 @@ void set_books_to_read(char *books_path)
 	if (!contains) koios_tag_addtomask(&state, &mask, tag);
 
 	koios_mask_save(&state, &mask, file_path);
+
+	free(file_name);
 }
 
 // }}}
-
-
 
 
 int main(int argc, char **argv)
@@ -854,23 +863,18 @@ int main(int argc, char **argv)
 		switch (int_input)
 		{
 			case 1:
-				printf("Get books by tag called\n");
 				get_books_by_tag(books_path);
 				break;
 			case 2:
-				printf("Get books by class\n");
 				get_books_by_class(books_path);
 				break;
 			case 3:
-				printf("Add tag to book\n");
 				add_tag_to_book(books_path);
 				break;
 			case 4:
-				printf("Show books to read\n");
 				show_books_to_read(books_path);
 				break;
 			case 5:
-				printf("Set books to read\n");
 				set_books_to_read(books_path);
 				break;
 			default:
