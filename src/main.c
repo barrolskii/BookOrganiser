@@ -789,8 +789,17 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		// Second command line argument should always be the file path
 		parent_path = argv[1];
 	}
+
+
+	if (argc == 3)
+	{
+		// Check for the debug flag. Should always be the third argument
+		debug_enabled = (strcmp(argv[2], "-d") == 0) ? 1 : 0 ;
+	}
+
 
 	char *config_path = mkpath(getenv("HOME"), ".config", ".koios.cfg");
 
