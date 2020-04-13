@@ -12,6 +12,8 @@
 #include "categories.h"
 #include "terminalColors.h"
 
+#define SPACE_KEY 32
+
 
 // Path to parent directory where all books are stored
 char *parent_path = NULL;
@@ -369,6 +371,158 @@ char **book_name_completion(const char *text, int start, int end)
 // }}}
 
 
+// Config functions {{{
+
+unsigned int get_koios_tag_count(char *path)
+{
+	char str[256];
+	unsigned int tag_count = 0;
+
+	FILE *fp = fopen(path, "r");
+
+	if(!fp)
+	{
+		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
+		return tag_count;
+	}
+
+	while(fgets(str, 256, fp) != NULL)
+	{
+		// The config file is populated with lots of lines that
+		// are just a single newline character. So once we hit
+		// the first line containing only the newline character
+		// then we are done counting the tags
+		if (strlen(str) < 2) break;
+
+		tag_count++;
+	}
+
+	fclose(fp);
+
+	// Decrement the tag count as the first line of the config 
+	// file is not a tag
+	tag_count--;
+
+	return tag_count;
+}
+
+void populate_tag_list(char **list, int size, char *path)
+{
+	char str[256];
+	int length = 0;
+
+	FILE *fp = fopen(path, "r");
+
+	if(!fp)
+	{
+		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
+		return;
+	}
+
+	// Skip the first line in the file
+	fgets(str, 256, fp);
+
+	for (int i = 0; i < size; i++)
+	{
+		fgets(str, 256, fp);
+
+
+		length = strlen(str);
+
+		if (str[length - 1] == 10) str[length - 1] = '\0';
+
+		list[i] = malloc(sizeof(char) * length);
+		strcpy(list[i], str);
+		memset(str, 0, 256);
+	}	
+
+	list[size] = NULL;
+
+	fclose(fp);
+}
+
+void populate_book_list(char **list, int size, char *path)
+{
+	DIR *dir = NULL;
+	struct dirent *entry = NULL;
+
+	int i = 0;
+
+
+	if ((dir = opendir(path)) != NULL)
+	{
+		while ((entry = readdir(dir)) != NULL)
+		{
+			if (entry->d_type == DT_REG)
+			{
+				int length = strlen(entry->d_name);
+
+				list[i] = malloc((sizeof(char) * length) + 1);
+				strcpy(list[i], entry->d_name);
+
+				i++;
+			}
+		}
+	}
+
+	list[i] = NULL;
+}
+
+char *get_tag()
+{
+	rl_attempted_completion_function = tag_name_completion;
+
+	printf("Enter a tag\n");
+
+	char *buffer = readline(">> ");
+	int length = strlen(buffer) - 1;
+
+
+	// Remove trailing space from the autocompletion
+	if (buffer[length] == SPACE_KEY)
+	{
+		char *copy = malloc(sizeof(char) * length);
+		memcpy(copy, buffer, length);
+
+		buffer = (char*)realloc(buffer, length);
+		memcpy(buffer, copy, length);
+
+		buffer[length] = '\0';
+		free(copy);
+	}
+
+	return buffer;
+}
+
+char *get_book()
+{
+	rl_attempted_completion_function = book_name_completion;
+
+	printf("Enter a book\n");
+
+	char *buffer = readline(">> ");
+	int length = strlen(buffer) - 1;
+
+
+	// Remove trailing space from the autocompletion
+	if (buffer[length] == SPACE_KEY)
+	{
+		char *copy = malloc(sizeof(char) * length);
+		memcpy(copy, buffer, length);
+
+		buffer = (char*)realloc(buffer, length);
+		memcpy(buffer, copy, length);
+
+		buffer[length] = '\0';
+		free(copy);
+	}
+
+	return buffer;
+}
+
+// }}}
+
+
 // {{{ Template tests
 
 // koios_tag *tag, koios_mask *mask, char *path, DIR *dir
@@ -529,24 +683,34 @@ void add_tag_to_book(char *books_path)
 {
 	koios_tag tag;
 
-	char file_name[128] = {0};
-	char file_path[128] = {0};
-	char new_tag[128]	= {0};
+	char *file_name = NULL;
+	char *new_tag 	= NULL;
+
+	char file_path[256] = {0};
+
 
 	printf("Enter book you want to add a new tag to\n");
-	scanf("%s", file_name);
+
+	file_name = get_book();
 
 	printf("Enter the tag you want to add\n");
-	scanf("%s", new_tag);
+
+	new_tag = get_tag();
 
 	strcat(file_path, books_path);
+	printf("first cat: %s\n", file_path);
 	strcat(file_path, file_name);
+	printf("second cat: %s\n", file_path);
 
 	int exists = koios_name_find(&state, new_tag, &tag);
 	printf("exists %d\n", exists);
 	if (!exists)
 	{
 		printf("Tag does not exist\n");
+
+		free(file_name);
+		free(new_tag);
+
 		return;
 	}
 
@@ -556,6 +720,10 @@ void add_tag_to_book(char *books_path)
 	if (!contains) koios_tag_addtomask(&state, &mask, tag);
 
 	koios_mask_save(&state, &mask, file_path);
+
+
+	free(file_name);
+	free(new_tag);
 }
 
 void show_books_to_read(char *books_path)
@@ -627,134 +795,6 @@ void set_books_to_read(char *books_path)
 // }}}
 
 
-// Config functions {{{
-
-unsigned int get_koios_tag_count(char *path)
-{
-	char str[256];
-	unsigned int tag_count = 0;
-
-	FILE *fp = fopen(path, "r");
-
-	if(!fp)
-	{
-		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
-		return tag_count;
-	}
-
-	while(fgets(str, 256, fp) != NULL)
-	{
-		// The config file is populated with lots of lines that
-		// are just a single newline character. So once we hit
-		// the first line containing only the newline character
-		// then we are done counting the tags
-		if (strlen(str) < 2) break;
-
-		tag_count++;
-	}
-
-	fclose(fp);
-
-	// Decrement the tag count as the first line of the config 
-	// file is not a tag
-	tag_count--;
-
-	return tag_count;
-}
-
-void populate_tag_list(char **list, int size, char *path)
-{
-	char str[256];
-	int length = 0;
-
-	FILE *fp = fopen(path, "r");
-
-	if(!fp)
-	{
-		printf(ANSI_COLOR_RED "unable to find file\n" ANSI_COLOR_RESET);
-		return;
-	}
-
-	// Skip the first line in the file
-	fgets(str, 256, fp);
-
-	for (int i = 0; i < size; i++)
-	{
-		fgets(str, 256, fp);
-
-
-		length = strlen(str);
-
-		if (str[length - 1] == 10) str[length - 1] = '\0';
-
-		list[i] = malloc(sizeof(char) * length);
-		strcpy(list[i], str);
-		memset(str, 0, 256);
-	}	
-
-	list[size] = NULL;
-
-	fclose(fp);
-}
-
-void populate_book_list(char **list, int size, char *path)
-{
-	DIR *dir = NULL;
-	struct dirent *entry = NULL;
-
-	int i = 0;
-
-
-	if ((dir = opendir(path)) != NULL)
-	{
-		while ((entry = readdir(dir)) != NULL)
-		{
-			if (entry->d_type == DT_REG)
-			{
-				int length = strlen(entry->d_name);
-
-				list[i] = malloc((sizeof(char) * length) + 1);
-				strcpy(list[i], entry->d_name);
-
-				i++;
-			}
-		}
-	}
-
-	list[i] = NULL;
-}
-
-void get_tag()
-{
-	rl_attempted_completion_function = tag_name_completion;
-
-	printf("Enter a tag\n");
-
-	char *buffer = readline(">> ");
-
-	if (buffer)
-	{
-		printf("You entered: %s:\n", buffer);
-		free(buffer);
-	}
-}
-
-void get_book()
-{
-	rl_attempted_completion_function = book_name_completion;
-
-	printf("Enter a book\n");
-
-	char *buffer = readline(">> ");
-
-	if (buffer)
-	{
-		printf("You entered: %s:\n", buffer);
-		free(buffer);
-	}
-}
-
-// }}}
 
 
 int main(int argc, char **argv)
@@ -820,8 +860,13 @@ int main(int argc, char **argv)
 	populate_book_list(book_list, book_count, books_path);
 
 
-	get_tag();
-	get_book();
+	char *mytag = get_tag();
+	printf("mytag: %s:\n", mytag);
+	free(mytag);
+
+	char *mybook = get_book();
+	printf("mybook: %s:\n", mybook);
+	free(mybook);
 
 	// Main loop
 	char input;
