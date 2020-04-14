@@ -576,6 +576,20 @@ void get_books_by_tag(char *books_path)
 	debug_printf("tag_name: %s\n", tag_name);
 	koios_name_find(&state, tag_name, &tag);
 
+	int len = 30;
+
+	char border[len];
+	memset(border, '=', len);
+	border[len - 1] = '\0';
+
+	printf("%s\n", border);
+	printf("| %-25s |\n", "name");
+
+	// Set the border to be '-' instead of '='
+	memset(border, '-', len - 1); // len - 1 so we don't have to set the null
+								  // termination character
+
+	printf("%s\n", border);
 
 	if ((dir = opendir(books_path)) != NULL)
 	{
@@ -591,13 +605,16 @@ void get_books_by_tag(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("%s\n", entry->d_name);
+				if (contains) printf("| %-25s |\n", entry->d_name);
 
 				// Cleanup for the next iteration
 				memset(file_path, 0, 128);
 			}
 		}
 	}
+
+	memset(border, '=', len - 1);
+	printf("%s\n", border);
 
 	closedir(dir);
 	free(tag_name);
@@ -615,6 +632,11 @@ void get_books_by_class(char *books_path)
 	struct dirent *entry = NULL;
 
 	int input = 0;
+	int len = 30;
+
+	char border[len];
+	memset(border, '=', len);
+	border[len - 1] = '\0';
 
 	// Show the user the selection of classes
 	printf("Select a class\n");
@@ -626,6 +648,15 @@ void get_books_by_class(char *books_path)
 
 	debug_printf("Chosen class: %s\n", main_classes[input - 1]);
 	koios_name_find(&state, main_classes[input - 1], &tag);
+
+
+	printf("%s\n", border);
+	printf("| %-25s |\n", "name");
+
+	memset(border, '-', len - 1);
+
+	printf("%s\n", border);
+
 
 	if ((dir = opendir(books_path)) != NULL)
 	{
@@ -647,12 +678,16 @@ void get_books_by_class(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("%s\n", entry->d_name);
+				if (contains) printf("| %-25s |\n", entry->d_name);
 
 				memset(file_path, 0, 128);
 			}
 		}
 	}
+
+	memset(border, '=', len - 1);
+	printf("%s\n", border);
+
 
 	closedir(dir);
 }
@@ -717,6 +752,19 @@ void show_books_to_read(char *books_path)
 
 	char *tag_name = "To_Read";
 
+	int len = 30;
+
+	char border[len];
+	memset(border, '=', len);
+	border[len - 1] = '\0';
+
+	printf("%s\n", border);
+	printf("| %-25s |\n", "name");
+
+	memset(border, '-', len - 1);
+
+	printf("%s\n", border);
+
 
 	// Search for the "To_Read" tag in the koios database to load it into the 
 	// tag struct
@@ -735,13 +783,16 @@ void show_books_to_read(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("%s\n", entry->d_name);
+				if (contains) printf("| %-25s |\n", entry->d_name);
 
 				// Cleanup for the next iteration
 				memset(file_path, 0, 128);
 			}
 		}
 	}
+
+	memset(border, '=', len - 1);
+	printf("%s\n", border);
 
 	closedir(dir);
 }
