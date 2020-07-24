@@ -263,8 +263,8 @@ void check_koios_tags(char *config_path)
 	}
 
 	char *other_tags[2] = {
-		"Have_Read",	// Have red and to reed
-		"To_Read"		// This is when I dislike the English language...
+		"Have_Read",
+		"To_Read"
 	};
 
 	for (i = 0; i < 2; i++)
