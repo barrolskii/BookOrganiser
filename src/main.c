@@ -24,7 +24,7 @@ char *parent_path = NULL;
 // this works well
 unsigned int div_index = 0;
 
-char **tag_list = NULL; 
+char **tag_list = NULL;
 char **book_list = NULL;
 
 int debug_enabled = 0;
@@ -33,7 +33,7 @@ koios_state state = {};
 koios_mask mask = {};
 
 // {{{
-// From https://gitlab.com/finnoleary/koios/-/blob/master/koios.c 
+// From https://gitlab.com/finnoleary/koios/-/blob/master/koios.c
 // I can't take any credit for this function.
 #define eprint(...) \
 	fprintf(stderr, __VA_ARGS__)
@@ -372,7 +372,7 @@ unsigned int get_koios_tag_count(char *path)
 
 	fclose(fp);
 
-	// Decrement the tag count as the first line of the config 
+	// Decrement the tag count as the first line of the config
 	// file is not a tag
 	tag_count--;
 
@@ -407,7 +407,7 @@ void populate_tag_list(char **list, int size, char *path)
 		list[i] = malloc(sizeof(char) * length);
 		strcpy(list[i], str);
 		memset(str, 0, 256);
-	}	
+	}
 
 	list[size] = NULL;
 
@@ -496,66 +496,6 @@ char *get_book()
 // }}}
 
 
-// {{{ Template tests
-
-// koios_tag *tag, koios_mask *mask, char *path, DIR *dir
-void test_get_books(koios_tag *tag, koios_mask *mask, char *file_path, char *books_path, DIR *dir)
-{
-	char tag_name[128] = {0};
-	struct dirent *entry = NULL;
-
-
-	printf("Enter tag name you want to seach by\n");
-	scanf("%s", tag_name);
-
-	printf("tag_name: %s\n", tag_name);
-	koios_name_find(&state, tag_name, tag);
-
-
-	while ((entry = readdir(dir)) != NULL)
-	{
-		if (entry->d_type == DT_REG)
-		{
-			strcat(file_path, books_path);
-			strcat(file_path, entry->d_name);
-
-			// Create a fresh mask and load the current files tag mask in
-			koios_mask_new(&state, mask);
-			koios_mask_load(&state, mask, file_path);
-
-			// Check if the file contains the tag mask and print it
-			int contains = koios_tag_maskcontains(&state, mask, *tag);
-			if (contains) printf("%s\n", entry->d_name);
-
-			// Cleanup for the next iteration
-			memset(file_path, 0, 128);
-			koios_mask_del(mask);
-		}
-	}
-
-}
-
-void test_template(char *books_path, void (*fun)(koios_tag *, koios_mask *,  char *, char *, DIR *))
-{
-	koios_tag tag;
-	koios_mask mask;
-
-	char file_path[128] = {0};
-
-	DIR *dir = NULL;
-
-
-	if ((dir = opendir(books_path)) != NULL)
-	{
-		fun(&tag, &mask, file_path, books_path, dir);
-	}
-
-
-	closedir(dir);
-}
-// }}}
-
-
 // {{{ Menu functions
 
 void get_books_by_tag(char *books_path)
@@ -621,7 +561,7 @@ void get_books_by_tag(char *books_path)
 }
 
 void get_books_by_class(char *books_path)
-{	
+{
 	debug_printf("Get books by class\n");
 
 	koios_tag tag;
@@ -766,7 +706,7 @@ void show_books_to_read(char *books_path)
 	printf("%s\n", border);
 
 
-	// Search for the "To_Read" tag in the koios database to load it into the 
+	// Search for the "To_Read" tag in the koios database to load it into the
 	// tag struct
 	koios_name_find(&state, tag_name, &tag);
 
@@ -834,9 +774,9 @@ int main(int argc, char **argv)
 {
 	if (argc == 1)
 	{
-		// If no path is given assume directory above the source folder is 
-		// the main parent directory for all books
-		parent_path = "../";
+		// If no path is given assume current directory is parent directory
+		// for all books
+		parent_path = "./";
 	}
 	else
 	{
