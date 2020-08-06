@@ -12,7 +12,8 @@
 #include "categories.h"
 #include "terminalColors.h"
 
-#define SPACE_KEY 32
+#define SPACE_KEY 		32
+#define MAX_STR_LEN 	1024
 
 
 // Path to parent directory where all books are stored
@@ -139,8 +140,8 @@ void move_files()
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
 
-	char new_path[128] = {0};
-	char old_path[128] = {0};
+	char new_path[MAX_STR_LEN] = {0};
+	char old_path[MAX_STR_LEN] = {0};
 
 	koios_mask mask = {};
 
@@ -204,8 +205,8 @@ void move_files()
 				rename(old_path, new_path);
 
 				// Clear the arrays when we are done with them
-				memset(new_path, 0, sizeof(new_path));
-				memset(old_path, 0, sizeof(old_path));
+				memset(new_path, 0, MAX_STR_LEN);
+				memset(old_path, 0, MAX_STR_LEN);
 
 				// Delete the mask ready for a new file
 				koios_mask_del(&mask);
@@ -505,7 +506,7 @@ void get_books_by_tag(char *books_path)
 	koios_tag tag;
 
 	char *tag_name = NULL;
-	char file_path[256] = {0};
+	char file_path[MAX_STR_LEN] = {0};
 
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
@@ -523,7 +524,7 @@ void get_books_by_tag(char *books_path)
 	border[len - 1] = '\0';
 
 	printf("%s\n", border);
-	printf("| %-25s |\n", "name");
+	printf("| %25s |\n", "name");
 
 	// Set the border to be '-' instead of '='
 	memset(border, '-', len - 1); // len - 1 so we don't have to set the null
@@ -545,10 +546,10 @@ void get_books_by_tag(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("| %-25s |\n", entry->d_name);
+				if (contains) printf("| %25s |\n", entry->d_name);
 
 				// Cleanup for the next iteration
-				memset(file_path, 0, 128);
+				memset(file_path, 0, MAX_STR_LEN);
 			}
 		}
 	}
@@ -566,7 +567,7 @@ void get_books_by_class(char *books_path)
 
 	koios_tag tag;
 
-	char file_path[128] = {0};
+	char file_path[MAX_STR_LEN] = {0};
 
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
@@ -620,7 +621,7 @@ void get_books_by_class(char *books_path)
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
 				if (contains) printf("| %-25s |\n", entry->d_name);
 
-				memset(file_path, 0, 128);
+				memset(file_path, 0, MAX_STR_LEN);
 			}
 		}
 	}
@@ -641,7 +642,7 @@ void add_tag_to_book(char *books_path)
 	char *file_name = NULL;
 	char *new_tag 	= NULL;
 
-	char file_path[256] = {0};
+	char file_path[MAX_STR_LEN] = {0};
 
 
 	printf("Enter book you want to add a new tag to\n");
@@ -685,7 +686,7 @@ void show_books_to_read(char *books_path)
 
 	koios_tag tag;
 
-	char file_path[128] = {0};
+	char file_path[MAX_STR_LEN] = {0};
 
 	DIR *dir = NULL;
 	struct dirent *entry = NULL;
@@ -726,7 +727,7 @@ void show_books_to_read(char *books_path)
 				if (contains) printf("| %-25s |\n", entry->d_name);
 
 				// Cleanup for the next iteration
-				memset(file_path, 0, 128);
+				memset(file_path, 0, MAX_STR_LEN);
 			}
 		}
 	}
@@ -744,7 +745,7 @@ void set_books_to_read(char *books_path)
 	koios_tag tag;
 
 	char *file_name = NULL;
-	char file_path[128] = {0};
+	char file_path[MAX_STR_LEN] = {0};
 
 	char *tag_name = "To_Read";
 
