@@ -5,7 +5,6 @@
 #include <libkoios.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <wchar.h>
 
 #include <sys/ioctl.h>
 #include <readline/readline.h>
@@ -793,6 +792,10 @@ void set_books_to_read(char *books_path)
 
 int main(int argc, char **argv)
 {
+	// Iterator used later during cleanup
+	int i = 0;
+
+
 	if (argc == 1)
 	{
 		// If no path is given assume current directory is parent directory
@@ -801,16 +804,15 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		// Second command line argument should always be the file path
-		parent_path = argv[1];
+		for (i = 1; i < argc; i++)
+		{
+			if (strcmp(argv[i], "-d") == 0)
+				debug_enabled = 1;
+			else
+				parent_path = argv[i];
+		}
 	}
 
-
-	if (argc == 3)
-	{
-		// Check for the debug flag. Should always be the third argument
-		debug_enabled = (strcmp(argv[2], "-d") == 0) ? 1 : 0 ;
-	}
 
 	char *config_path = mkpath(getenv("HOME"), ".config", ".koios.cfg");
 
@@ -903,7 +905,6 @@ int main(int argc, char **argv)
 
 	}
 
-	int i = 0;
 
 	for (i; i < tag_count; i++)
 	{
