@@ -16,6 +16,12 @@
 #define SPACE_KEY 		32
 #define MAX_STR_LEN 	1024
 
+#define ALIGN_OUTPUT(name, length) \
+	if (strlen(name) >= (length - 4)) \
+		printf("| %.*s |\n", length - 5, name); \
+	else \
+		printf("| %-*s |\n", length - 5, name);
+
 
 // Path to parent directory where all books are stored
 char *parent_path = NULL;
@@ -539,6 +545,7 @@ void get_books_by_tag(char *books_path)
 
 	printf("%s\n", border);
 
+
 	if ((dir = opendir(books_path)) != NULL)
 	{
 		while ((entry = readdir(dir)) != NULL)
@@ -553,19 +560,7 @@ void get_books_by_tag(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains)
-				{
-					if (strlen(entry->d_name) >= (len - 4))
-					{
-						printf("| %.*s |\n", len - 5, entry->d_name);
-					}
-					else
-					{
-						debug_printf("curr book: %s\n", entry->d_name);
-						debug_printf("curr book len: %d\n", strlen(entry->d_name));
-						printf("| %-*s |\n", len - 5, entry->d_name);
-					}
-				}
+				if (contains) { ALIGN_OUTPUT(entry->d_name, len) }
 
 				// Cleanup for the next iteration
 				memset(file_path, 0, MAX_STR_LEN);
@@ -592,7 +587,13 @@ void get_books_by_class(char *books_path)
 	struct dirent *entry = NULL;
 
 	int input = 0;
-	int len = 30;
+
+	struct winsize w;
+	ioctl(0, TIOCGWINSZ, &w);
+
+	// Align output to take 2/3 of terminal width
+	int len = w.ws_col * 0.66;
+	debug_printf("Len: %d\n", len);
 
 	char border[len];
 	memset(border, '=', len);
@@ -611,7 +612,7 @@ void get_books_by_class(char *books_path)
 
 
 	printf("%s\n", border);
-	printf("| %-25s |\n", "name");
+	printf("| %-*s|\n", len - 4, "name");
 
 	memset(border, '-', len - 1);
 
@@ -638,7 +639,7 @@ void get_books_by_class(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("| %-25s |\n", entry->d_name);
+				if (contains) { ALIGN_OUTPUT(entry->d_name, len) }
 
 				memset(file_path, 0, MAX_STR_LEN);
 			}
@@ -712,14 +713,19 @@ void show_books_to_read(char *books_path)
 
 	char *tag_name = "To_Read";
 
-	int len = 30;
+	struct winsize w;
+	ioctl(0, TIOCGWINSZ, &w);
+
+	// Align output to take 2/3 of terminal width
+	int len = w.ws_col * 0.66;
+	debug_printf("Len: %d\n", len);
 
 	char border[len];
 	memset(border, '=', len);
 	border[len - 1] = '\0';
 
 	printf("%s\n", border);
-	printf("| %-25s |\n", "name");
+	printf("| %-*s|\n", len - 4, "name");
 
 	memset(border, '-', len - 1);
 
@@ -743,7 +749,7 @@ void show_books_to_read(char *books_path)
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("| %-25s |\n", entry->d_name);
+				if (contains) { ALIGN_OUTPUT(entry->d_name, len) }
 
 				// Cleanup for the next iteration
 				memset(file_path, 0, MAX_STR_LEN);
