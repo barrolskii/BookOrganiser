@@ -905,6 +905,8 @@ int main(int argc, char **argv)
 			case 5:
 				set_books_to_read(books_path);
 				break;
+			case 6:
+				system("clear");
 			default:
 				printf("Please enter a valid number\n");
 		}

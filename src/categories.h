@@ -2,8 +2,8 @@
 #define CATEGORIES_H
 
 #define TOTAL_CLASSES 10
-#define TOTAL_DIVISIONS 9 
-#define MENU_OPTIONS_SIZE 5
+#define TOTAL_DIVISIONS 9
+#define MENU_OPTIONS_SIZE 6
 
 
 char *menu_options[MENU_OPTIONS_SIZE] = {
@@ -11,7 +11,8 @@ char *menu_options[MENU_OPTIONS_SIZE] = {
 	"Get books by class",
 	"Add tag to book",
 	"Show books to read",
-	"Set books to read"
+	"Set books to read",
+	"Clear output",
 };
 
 /*
