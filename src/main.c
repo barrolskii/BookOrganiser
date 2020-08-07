@@ -5,7 +5,9 @@
 #include <libkoios.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <wchar.h>
 
+#include <sys/ioctl.h>
 #include <readline/readline.h>
 
 #include "utils.h"
@@ -517,14 +519,20 @@ void get_books_by_tag(char *books_path)
 	debug_printf("tag_name: %s\n", tag_name);
 	koios_name_find(&state, tag_name, &tag);
 
-	int len = 30;
+	// Grab terminal info
+	struct winsize w;
+	ioctl(0, TIOCGWINSZ, &w);
+
+	// Align output to take 2/3 of terminal width
+	int len = w.ws_col * 0.66;
+	debug_printf("Len: %d\n", len);
 
 	char border[len];
 	memset(border, '=', len);
 	border[len - 1] = '\0';
 
 	printf("%s\n", border);
-	printf("| %25s |\n", "name");
+	printf("| %-*s|\n", len - 4, "name");
 
 	// Set the border to be '-' instead of '='
 	memset(border, '-', len - 1); // len - 1 so we don't have to set the null
@@ -542,11 +550,23 @@ void get_books_by_tag(char *books_path)
 				strcat(file_path, entry->d_name);
 
 				// Load the current file mask
-				koios_mask_load(&state, &mask, file_path);
+				koios_mask_load(&state, &mask, (char*)file_path);
 
 				// Check if the file contains the tag mask and print it
 				int contains = koios_tag_maskcontains(&state, &mask, tag);
-				if (contains) printf("| %25s |\n", entry->d_name);
+				if (contains)
+				{
+					if (strlen(entry->d_name) >= (len - 4))
+					{
+						printf("| %.*s |\n", len - 5, entry->d_name);
+					}
+					else
+					{
+						debug_printf("curr book: %s\n", entry->d_name);
+						debug_printf("curr book len: %d\n", strlen(entry->d_name));
+						printf("| %-*s |\n", len - 5, entry->d_name);
+					}
+				}
 
 				// Cleanup for the next iteration
 				memset(file_path, 0, MAX_STR_LEN);
@@ -792,7 +812,6 @@ int main(int argc, char **argv)
 		debug_enabled = (strcmp(argv[2], "-d") == 0) ? 1 : 0 ;
 	}
 
-
 	char *config_path = mkpath(getenv("HOME"), ".config", ".koios.cfg");
 
 	// Initalise the state and the mask
@@ -815,7 +834,7 @@ int main(int argc, char **argv)
 		debug_printf("No new files have been found\n");
 	}
 
-	char books_path[128] = {0};
+	char books_path[MAX_STR_LEN] = {0};
 	strcat(books_path, parent_path);
 	strcat(books_path, "books/");
 
