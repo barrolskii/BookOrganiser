@@ -16,10 +16,10 @@
 #define SPACE_KEY 		32
 #define MAX_STR_LEN 	1024
 
-#define ALIGN_OUTPUT(name, length) \
-	if (strlen(name) >= (length - 4)) \
-		printf("| %.*s |\n", length - 5, name); \
-	else \
+#define ALIGN_OUTPUT(name, length) 					\
+	if (strlen(name) >= (length - 4)) 				\
+		printf("| %.*s |\n", length - 5, name); 	\
+	else 											\
 		printf("| %-*s |\n", length - 5, name);
 
 
@@ -119,7 +119,7 @@ int debug_printf(const char *format, ...)
 // }}}
 
 
-// {{{ Initalisation functions
+// {{{ Initalisation and koios functions
 void init(char *path)
 {
 	// Directory called books to contain, you guessed it, all the users books
@@ -210,6 +210,9 @@ void move_files()
 
 				// Move the file to the books directory
 				rename(old_path, new_path);
+
+				// Clear ouput so its a bit easier to read
+				system("clear");
 
 				// Clear the arrays when we are done with them
 				memset(new_path, 0, MAX_STR_LEN);
@@ -907,6 +910,7 @@ int main(int argc, char **argv)
 				break;
 			case 6:
 				system("clear");
+				break;
 			default:
 				printf("Please enter a valid number\n");
 		}
