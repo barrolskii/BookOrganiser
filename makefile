@@ -8,5 +8,5 @@ $(EXE): main.c
 	$(CC) $(CFLAGS) $(LIBS) main.c -o $(EXE)
 
 clean:
-	rm $(EXE)
+	rm $(EXE) *.csv
 
