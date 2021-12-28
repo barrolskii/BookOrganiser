@@ -53,6 +53,8 @@ unsigned results_count = 0;
 /* Item array containing search results */
 ITEM **results = NULL;
 
+int should_update = 0;
+
 book_t *init_book(const char *name, const char *tags)
 {
     book_t *new_book = calloc(1, sizeof(book_t));
@@ -89,6 +91,7 @@ int add_node(book_node_t *node)
     {
         head = node;
         ++node_count;
+        should_update = 1;
         return 1;
     }
 
@@ -101,6 +104,7 @@ int add_node(book_node_t *node)
 
     curr->next = node;
     ++node_count;
+    should_update = 1;
 
     return 1;
 }
@@ -213,6 +217,8 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 
     if (count == 0)
     {
+        werase(win);
+        box(win, 0, 0);
         mvwprintw(win, 2, 2, "No new books detected");
         wrefresh(win);
         return;
@@ -299,8 +305,46 @@ book_cleanup:
     FREE_2D_ARR(new_books, count)
 }
 
+int get_book_index(const char *name)
+{
+    for (int i = 0; i < book_count; i++)
+    {
+        if (*name != book_data[i]->name[0])
+            continue;
+
+        if (strcmp(name, book_data[i]->name) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
 void print_book_info(WINDOW *win, const char *book_name)
 {
+    int index = get_book_index(book_name);
+
+    if (index == -1)
+    {
+        mvwprintw(win, 1, 1, "Error: Cannot find book [%s]", book_name);
+    }
+    else
+    {
+        /* Clear any old output */
+        werase(win);
+
+        book_t *book = book_data[index];
+
+        // TODO: Split name on multiple lines if it is too long
+        // TODO: Maybe add a copy to clipboard option
+        mvwprintw(win, 1, 1, "%s", book->name);
+        mvwprintw(win, 3, 1, "%s", book->tags);
+        mvwprintw(win, 4, 1, "To read: %d", book->to_read);
+        mvwprintw(win, 5, 1, "In prog: %d", book->in_prog);
+        mvwprintw(win, 6, 1, "Have read: %d",book->have_read);
+
+        box(win, 0, 0);
+        wrefresh(win);
+    }
 
 }
 
@@ -354,12 +398,15 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     name = NULL;
     closedir(dir);
 
+    int ch;
+    ITEM *curr_item = NULL;
+
     set_menu_items(menu, results);
     post_menu(menu);
     pos_menu_cursor(menu);
 
-    int ch;
-    ITEM *curr_item = NULL;
+    curr_item = current_item(menu);
+    print_book_info(output_win, item_name(curr_item));
 
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {
@@ -377,7 +424,7 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
 
         /* Show the books info on the output window */
         curr_item = current_item(menu);
-        //print_book_info(output_win, item_name(curr_item));
+        print_book_info(output_win, item_name(curr_item));
     }
 
     unpost_menu(menu);
@@ -586,30 +633,33 @@ int main(int argc, char **argv)
     delwin(output_win);
     endwin();
 
-    /* Write book data to the CSV file */
-    FILE *fp = fopen(BOOK_DATA_FILE, "w");
-
-    fprintf(fp, "%d\n", book_count + node_count);
-
-    for (int i = 0; i < book_count; i++)
+    if (should_update)
     {
-        fprintf(fp, "%s,%d,%d,%d,%s\n", book_data[i]->name,
-                                        book_data[i]->have_read,
-                                        book_data[i]->in_prog,
-                                        book_data[i]->to_read,
-                                        book_data[i]->tags);
-    }
+        /* Write book data to the CSV file */
+        FILE *fp = fopen(BOOK_DATA_FILE, "w");
 
-    for (book_node_t *curr = head; curr; curr = curr->next)
-    {
-        fprintf(fp, "%s,%d,%d,%d,%s\n", curr->book->name,
-                                        curr->book->have_read,
-                                        curr->book->in_prog,
-                                        curr->book->to_read,
-                                        curr->book->tags);
-    }
+        fprintf(fp, "%d\n", book_count + node_count);
 
-    fclose(fp);
+        for (int i = 0; i < book_count; i++)
+        {
+            fprintf(fp, "%s,%d,%d,%d,%s\n", book_data[i]->name,
+                                            book_data[i]->have_read,
+                                            book_data[i]->in_prog,
+                                            book_data[i]->to_read,
+                                            book_data[i]->tags);
+        }
+
+        for (book_node_t *curr = head; curr; curr = curr->next)
+        {
+            fprintf(fp, "%s,%d,%d,%d,%s\n", curr->book->name,
+                                            curr->book->have_read,
+                                            curr->book->in_prog,
+                                            curr->book->to_read,
+                                            curr->book->tags);
+        }
+
+        fclose(fp);
+    }
 
     for (int i = 0; i < book_count; i++)
     {
