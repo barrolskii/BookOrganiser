@@ -28,9 +28,9 @@
 typedef struct {
     char *name;
     char *tags;
-    char have_read : 1;
-    char in_prog : 1;
-    char to_read : 1;
+    unsigned char have_read : 1;
+    unsigned char in_prog : 1;
+    unsigned char to_read : 1;
 } book_t;
 
 struct _book_node {
@@ -53,6 +53,9 @@ unsigned results_count = 0;
 /* Item array containing search results */
 ITEM **results = NULL;
 
+/* Flag for whether or not we should update the book records */
+/* This will only be true when new books have been added or  */
+/* records have been updated */
 int should_update = 0;
 
 book_t *init_book(const char *name, const char *tags)
@@ -336,11 +339,17 @@ void print_book_info(WINDOW *win, const char *book_name)
 
         // TODO: Split name on multiple lines if it is too long
         // TODO: Maybe add a copy to clipboard option
-        mvwprintw(win, 1, 1, "%s", book->name);
-        mvwprintw(win, 3, 1, "%s", book->tags);
-        mvwprintw(win, 4, 1, "To read: %d", book->to_read);
-        mvwprintw(win, 5, 1, "In prog: %d", book->in_prog);
-        mvwprintw(win, 6, 1, "Have read: %d",book->have_read);
+        mvwprintw(win, 1, 1, "%s",             book->name);
+        mvwprintw(win, 5, 1, "%s",             book->tags);
+        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
+        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
+        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
+
+
+        /* Help string */
+        mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
+        mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
+
 
         box(win, 0, 0);
         wrefresh(win);
@@ -395,6 +404,9 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
         }
     }
 
+    // TODO: This only works for files that exist
+    //       Need to update this for newly added files
+
     name = NULL;
     closedir(dir);
 
@@ -408,6 +420,9 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     curr_item = current_item(menu);
     print_book_info(output_win, item_name(curr_item));
 
+    int index         = get_book_index(item_name(curr_item));
+    book_t *curr_book = book_data[index];
+
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {
         switch (ch)
@@ -415,15 +430,31 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
             case 'j':
             case KEY_DOWN:
                 menu_driver(menu, REQ_DOWN_ITEM);
+                curr_item = current_item(menu);
+                index = get_book_index(item_name(curr_item));
+                curr_book = book_data[index];
                 break;
             case 'k':
             case KEY_UP:
                 menu_driver(menu, REQ_UP_ITEM);
+                curr_item = current_item(menu);
+                index = get_book_index(item_name(curr_item));
+                curr_book = book_data[index];
+                break;
+            case 'h':
+                curr_book->have_read = 1;
+                curr_book->in_prog   = 0;
+                curr_book->to_read   = 0;
+                break;
+            case 'p':
+                curr_book->in_prog = 1;
+                break;
+            case 'r':
+                curr_book->to_read = 1;
                 break;
         }
 
         /* Show the books info on the output window */
-        curr_item = current_item(menu);
         print_book_info(output_win, item_name(curr_item));
     }
 
