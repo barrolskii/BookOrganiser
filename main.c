@@ -345,12 +345,6 @@ void print_book_info(WINDOW *win, const char *book_name)
         mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
         mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
 
-
-        /* Help string */
-        mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
-        mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
-
-
         box(win, 0, 0);
         wrefresh(win);
     }
@@ -380,7 +374,11 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 
     if (results_count == 0)
     {
-
+        werase(output_win);
+        box(output_win, 0, 0);
+        mvwprintw(output_win, 2, 2, "No new books detected");
+        wrefresh(output_win);
+        return;
     }
     else
     {
@@ -438,6 +436,13 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
     }
 
     unpost_menu(menu);
+}
+
+void print_list_books_help_string(WINDOW *win)
+{
+    mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
+    mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
+    wrefresh(win);
 }
 
 void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
@@ -504,6 +509,7 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
 
     curr_item = current_item(menu);
     print_book_info(output_win, item_name(curr_item));
+    print_list_books_help_string(output_win);
 
     int index         = get_book_index(item_name(curr_item));
     book_t *curr_book = book_data[index];
@@ -533,17 +539,18 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
                 should_update        = 1;
                 break;
             case 'p':
-                curr_book->in_prog = 1;
+                curr_book->in_prog = !curr_book->to_read;
                 should_update      = 1;
                 break;
             case 'r':
-                curr_book->to_read = 1;
+                curr_book->to_read = !curr_book->to_read;
                 should_update      = 1;
                 break;
         }
 
         /* Show the books info on the output window */
         print_book_info(output_win, item_name(curr_item));
+        print_list_books_help_string(output_win);
     }
 
     unpost_menu(menu);
