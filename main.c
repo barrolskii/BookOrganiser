@@ -357,6 +357,89 @@ void print_book_info(WINDOW *win, const char *book_name)
 
 }
 
+void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
+{
+    /* Cleanup the previous results */
+    if (results != NULL)
+    {
+        for (int i = 0; i < results_count; i++)
+        {
+            free((char*)results[i]->name.str);
+            free_item(results[i]);
+        }
+        free(results);
+        results_count = 0;
+        results       = NULL;
+    }
+
+    for (int i = 0; i < book_count; i++)
+    {
+        if (book_data[i]->to_read)
+            ++results_count;
+    }
+
+    if (results_count == 0)
+    {
+
+    }
+    else
+    {
+        char *name = NULL;
+        results = calloc(results_count + 1, sizeof(ITEM*));
+
+        for (int i = 0, j = 0; i < book_count; i++)
+        {
+            if (book_data[i]->to_read)
+            {
+                int len = strlen(book_data[i]->name);
+                name = calloc(len + 1, sizeof(char));
+                strcpy(name, book_data[i]->name);
+
+                results[j] = new_item(name, "");
+                ++j;
+
+                // TODO: Look into this. This could work it just needs some tweaking
+                //results[j] = new_item(book_data[i]->name, "");
+                //++j;
+            }
+        }
+
+        name = NULL;
+    }
+
+    int ch;
+    ITEM *curr_item = NULL;
+
+    set_menu_items(menu, results);
+    post_menu(menu);
+    pos_menu_cursor(menu);
+
+    curr_item = current_item(menu);
+    print_book_info(output_win, item_name(curr_item));
+
+    while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
+    {
+        switch (ch)
+        {
+            case 'j':
+            case KEY_DOWN:
+                menu_driver(menu, REQ_DOWN_ITEM);
+                break;
+            case 'k':
+            case KEY_UP:
+                menu_driver(menu, REQ_UP_ITEM);
+                break;
+        }
+
+        curr_item = current_item(menu);
+
+        /* Show the books info on the output window */
+        print_book_info(output_win, item_name(curr_item));
+    }
+
+    unpost_menu(menu);
+}
+
 void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
 {
     /* Cleanup the previous results */
@@ -381,6 +464,8 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     int i      = 0;
     char *name = NULL;
 
+    // TODO: Might not need to do the directory stuff here as the book data
+    //       is already available to us
     DIR *dir             = NULL;
     struct dirent *entry = NULL;
 
@@ -445,12 +530,15 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
                 curr_book->have_read = 1;
                 curr_book->in_prog   = 0;
                 curr_book->to_read   = 0;
+                should_update        = 1;
                 break;
             case 'p':
                 curr_book->in_prog = 1;
+                should_update      = 1;
                 break;
             case 'r':
                 curr_book->to_read = 1;
+                should_update      = 1;
                 break;
         }
 
@@ -575,7 +663,7 @@ int main(int argc, char **argv)
 
     set_item_userptr(items[0], check_for_books);
     set_item_userptr(items[1], NULL);
-    set_item_userptr(items[2], NULL);
+    set_item_userptr(items[2], list_book_to_read);
     set_item_userptr(items[3], list_books);
 
     /* Create menu */
@@ -593,7 +681,7 @@ int main(int argc, char **argv)
     set_form_sub(tag_form, derwin(output_win, 9, 11, 9, 2));
 
     set_menu_win(main_menu, main_win);
-    set_menu_sub(main_menu, derwin(main_win, 9, 22, 2, 2));
+    set_menu_sub(main_menu, derwin(main_win, 9, 60, 2, 2));
 
     box(main_win, 0, 0);
     box(output_win, 0, 0);
@@ -632,7 +720,11 @@ int main(int argc, char **argv)
                 }
                 else if (curr_item == items[2])
                 {
-
+                    unpost_menu(main_menu);
+                    void (*list_to_read)(WINDOW*, WINDOW*, MENU*) = item_userptr(curr_item);
+                    list_to_read(main_win, output_win, main_menu);
+                    set_menu_items(main_menu, items);
+                    post_menu(main_menu);
                 }
                 else if (curr_item == items[3])
                 {
