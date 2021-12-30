@@ -70,6 +70,20 @@ book_t *init_book(const char *name, const char *tags)
     strcpy(new_book->tags, tags);
     new_book->tags[strlen(new_book->tags)] = '\0';
 
+    /* This fixes an issue with the form character padding       */
+    /* I've tried changing it to be a NULL termination character */
+    /* but that doesn't work. So we just find the last valid     */
+    /* character and put a NULL terminator after that            */
+    for (int i = strlen(new_book->tags); i > 0; i--)
+    {
+        if ((new_book->tags[i] >= 33) && (new_book->tags[i] <= 126))
+        {
+            new_book->tags[i + 1] = '\0';
+            break;
+        }
+    }
+
+
     return new_book;
 }
 
@@ -271,6 +285,8 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
                 memset(old_path, 0, MAX_LENGTH);
                 memset(new_path, 0, MAX_LENGTH);
 
+                form_driver(form, REQ_CLR_FIELD);
+
                 break;
             }
 
@@ -288,6 +304,9 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
                 case KEY_DC:
                     form_driver(form, REQ_DEL_CHAR);
                     break;
+                case KEY_UP:
+                    form_driver(form, REQ_END_LINE);
+                    break;
                 case ESCAPE_KEY:
                     goto book_cleanup;
                     break;
@@ -299,6 +318,7 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
     }
 
 book_cleanup:
+    form_driver(form, REQ_CLR_FIELD);
     unpost_form(form);
     werase(win);
     box(win, 0, 0);
@@ -622,7 +642,7 @@ int main(int argc, char **argv)
         book_data = calloc(book_count, sizeof(book_t*));
         for (int i = 0; i < book_count; i++)
         {
-            fscanf(fp, "%[^,],%c,%c,%c,%s\n", name, &have_read, &in_prog, &to_read, tags);
+            fscanf(fp, "%[^,],%c,%c,%c,%[^\n]\n", name, &have_read, &in_prog, &to_read, tags);
 
             book_data[i] = init_book(name, tags);
             book_data[i]->have_read = have_read;
@@ -651,11 +671,13 @@ int main(int argc, char **argv)
 
     int ch;
 
-    field[0] = new_field(1, 10, 1, 1, 0, 0);
+    field[0] = new_field(1, 50, 1, 1, 1, 0);
     field[1] = NULL;
 
     /* Set field options  */
     set_field_back(field[0], A_UNDERLINE);
+    field_opts_off(field[0], O_STATIC);
+    set_max_field(field[0], 1023);
 
     /* Create form */
     tag_form = new_form(field);
@@ -685,7 +707,7 @@ int main(int argc, char **argv)
 
     /* Set main window and sub window */
     set_form_win(tag_form, output_win);
-    set_form_sub(tag_form, derwin(output_win, 9, 11, 9, 2));
+    set_form_sub(tag_form, derwin(output_win, 9, 60, 9, 2));
 
     set_menu_win(main_menu, main_win);
     set_menu_sub(main_menu, derwin(main_win, 9, 60, 2, 2));
