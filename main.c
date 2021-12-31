@@ -83,8 +83,50 @@ book_t *init_book(const char *name, const char *tags)
         }
     }
 
-
     return new_book;
+}
+
+int get_book_index(const char *name)
+{
+    for (int i = 0; i < book_count; i++)
+    {
+        if (*name != book_data[i]->name[0])
+            continue;
+
+        if (strcmp(name, book_data[i]->name) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+void print_book_info(WINDOW *win, const char *book_name)
+{
+    int index = get_book_index(book_name);
+
+    if (index == -1)
+    {
+        mvwprintw(win, 1, 1, "Error: Cannot find book [%s]", book_name);
+    }
+    else
+    {
+        /* Clear any old output */
+        werase(win);
+
+        book_t *book = book_data[index];
+
+        // TODO: Split name on multiple lines if it is too long
+        // TODO: Maybe add a copy to clipboard option
+        mvwprintw(win, 1, 1, "%s",             book->name);
+        mvwprintw(win, 5, 1, "%s",             book->tags);
+        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
+        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
+        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
+
+        box(win, 0, 0);
+        wrefresh(win);
+    }
+
 }
 
 void free_book(book_t *book)
@@ -253,7 +295,7 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 
     for (int i = 0; i < count; i++)
     {
-        /* Clear previoud output and update the window with new output */
+        /* Clear previous output and update the window with new output */
         wmove(win, 3, 1);
         wclrtoeol(win);
         box(win, 0, 0);
@@ -280,6 +322,7 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 
                 rename(old_path, new_path);
 
+                // TODO: Need this twice?
                 form_driver(form, REQ_CLR_FIELD);
 
                 memset(old_path, 0, MAX_LENGTH);
@@ -328,46 +371,152 @@ book_cleanup:
     FREE_2D_ARR(new_books, count)
 }
 
-int get_book_index(const char *name)
+void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *form)
 {
-    for (int i = 0; i < book_count; i++)
+    // TODO: Function
+    /* Cleanup the previous results */
+    if (results != NULL)
     {
-        if (*name != book_data[i]->name[0])
-            continue;
-
-        if (strcmp(name, book_data[i]->name) == 0)
-            return i;
+        for (int i = 0; i < results_count; i++)
+        {
+            free((char*)results[i]->name.str);
+            free_item(results[i]);
+        }
+        free(results);
+        results_count = 0;
+        results       = NULL;
     }
 
-    return -1;
-}
+    post_form(form);
+    wrefresh(output_win);
 
-void print_book_info(WINDOW *win, const char *book_name)
-{
-    int index = get_book_index(book_name);
+    int ch;
+    char search_opt[1024] = {0};
 
-    if (index == -1)
+    pos_form_cursor(form);
+
+
+    while ((ch = wgetch(output_win)))
     {
-        mvwprintw(win, 1, 1, "Error: Cannot find book [%s]", book_name);
+        if (ch == ENTER)
+        {
+            form_driver(form, REQ_VALIDATION);
+            strcpy(search_opt, field_buffer(form->field[0], 0));
+
+            form_driver(form, REQ_CLR_FIELD);
+            unpost_form(form);
+
+            // TODO: Function this to trim whitespace
+            for (int i = strlen(search_opt); i > 0; i--)
+            {
+                if ((search_opt[i] >= 33) && (search_opt[i] <= 126))
+                {
+                    search_opt[i + 1] = '\0';
+                    break;
+                }
+            }
+
+            mvwprintw(output_win, 7, 1, "tags: %s", search_opt);
+            wrefresh(output_win);
+
+            break;
+        }
+
+        switch (ch)
+        {
+            case KEY_LEFT:
+                form_driver(form, REQ_PREV_CHAR);
+                break;
+            case KEY_RIGHT:
+                form_driver(form, REQ_NEXT_CHAR);
+                break;
+            case KEY_BACKSPACE:
+                form_driver(form, REQ_DEL_PREV);
+                break;
+            case KEY_DC:
+                form_driver(form, REQ_DEL_CHAR);
+                break;
+            case KEY_UP:
+                form_driver(form, REQ_END_LINE);
+                break;
+            case ESCAPE_KEY:
+                unpost_form(form);
+                goto clean_search;
+                break;
+            default:
+                form_driver(form, ch);
+        }
+    }
+
+    for (int i = 0; i < book_count; i++)
+    {
+        if (strstr(book_data[i]->tags, search_opt))
+        {
+            ++results_count;
+        }
+    }
+
+    if (results_count == 0)
+    {
+        werase(output_win);
+        box(output_win, 0, 0);
+        mvwprintw(output_win, 2, 2, "No books found with tag/s");
+        wrefresh(output_win);
     }
     else
     {
-        /* Clear any old output */
-        werase(win);
+        char *name = NULL;
+        results = calloc(results_count + 1, sizeof(ITEM*));
 
-        book_t *book = book_data[index];
+        for (int i = 0, j = 0; i < book_count; i++)
+        {
+            if (strstr(book_data[i]->tags, search_opt))
+            {
+                int len = strlen(book_data[i]->name);
+                name = calloc(len + 1, sizeof(char));
+                strcpy(name, book_data[i]->name);
 
-        // TODO: Split name on multiple lines if it is too long
-        // TODO: Maybe add a copy to clipboard option
-        mvwprintw(win, 1, 1, "%s",             book->name);
-        mvwprintw(win, 5, 1, "%s",             book->tags);
-        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
-        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
-        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
+                results[j] = new_item(name, "");
+                ++j;
+            }
+        }
 
-        box(win, 0, 0);
-        wrefresh(win);
+        name = NULL;
+
+        ITEM *curr_item = NULL;
+
+        set_menu_items(menu, results);
+        post_menu(menu);
+        pos_menu_cursor(menu);
+
+        curr_item = current_item(menu);
+        print_book_info(output_win, item_name(curr_item));
+
+        while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
+        {
+            switch (ch)
+            {
+                case 'j':
+                case KEY_DOWN:
+                    menu_driver(menu, REQ_DOWN_ITEM);
+                    break;
+                case 'k':
+                case KEY_UP:
+                    menu_driver(menu, REQ_UP_ITEM);
+                    break;
+            }
+
+            curr_item = current_item(menu);
+
+            /* Show the books info on the output window */
+            print_book_info(output_win, item_name(curr_item));
+        }
     }
+
+clean_search:
+
+    unpost_menu(menu);
+    form_driver(form, REQ_CLR_FIELD);
 
 }
 
@@ -396,7 +545,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
     {
         werase(output_win);
         box(output_win, 0, 0);
-        mvwprintw(output_win, 2, 2, "No new books detected");
+        mvwprintw(output_win, 2, 2, "No books to read detected");
         wrefresh(output_win);
         return;
     }
@@ -691,7 +840,7 @@ int main(int argc, char **argv)
 
 
     set_item_userptr(items[0], check_for_books);
-    set_item_userptr(items[1], NULL);
+    set_item_userptr(items[1], search_for_book);
     set_item_userptr(items[2], list_book_to_read);
     set_item_userptr(items[3], list_books);
 
@@ -740,12 +889,17 @@ int main(int argc, char **argv)
 
                 if (curr_item == items[0])
                 {
+                    // TODO: Rename func pointer
                     void (*func)(WINDOW*, FORM*, char*) = item_userptr(curr_item);
                     func(output_win, tag_form, books_path);
                 }
                 else if (curr_item == items[1])
                 {
-
+                    unpost_menu(main_menu);
+                    void (*search_tags)(WINDOW*, WINDOW*, MENU*, FORM*) = item_userptr(curr_item);
+                    search_tags(main_win, output_win, main_menu, tag_form);
+                    set_menu_items(main_menu, items);
+                    post_menu(main_menu);
                 }
                 else if (curr_item == items[2])
                 {
@@ -763,8 +917,6 @@ int main(int argc, char **argv)
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
                 }
-
-
 
                 pos_menu_cursor(main_menu);
             }
