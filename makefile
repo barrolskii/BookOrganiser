@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g
+CFLAGS=-Wall -O3
 OBJS=
 LIBS=-lncurses -lmenu -lform
 EXE=prog

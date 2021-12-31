@@ -16,6 +16,7 @@
 #define ESCAPE_KEY 27
 #define MAX_LENGTH NAME_MAX + PATH_MAX
 
+#define VERSION        "2.0.0"
 #define BOOK_DATA_FILE "books.csv"
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
@@ -134,7 +135,6 @@ void print_book_info(WINDOW *win, book_t *book)
 {
         werase(win);
 
-        // TODO: Split name on multiple lines if it is too long
         mvwprintw(win, 1, 1, "%s",             book->name);
         mvwprintw(win, 5, 1, "%s",             book->tags);
         mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
@@ -161,7 +161,6 @@ void print_book_info_from_name(WINDOW *win, const char *book_name)
 
         book_t *book = book_data[index];
 
-        // TODO: Split name on multiple lines if it is too long
         mvwprintw(win, 1, 1, "%s",             book->name);
         mvwprintw(win, 5, 1, "%s",             book->tags);
         mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
@@ -234,7 +233,6 @@ void free_node(book_node_t *node)
     free(node);
 }
 
-// TODO: Helper file
 int dir_exists(char *path)
 {
     DIR *dir = NULL;
@@ -245,7 +243,6 @@ int dir_exists(char *path)
         return 1;
     }
 
-    closedir(dir);
     return 0;
 }
 
@@ -522,7 +519,6 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
             form_driver(form, REQ_CLR_FIELD);
             unpost_form(form);
 
-            // TODO: Function this to trim whitespace
             for (int i = strlen(search_opt); i > 0; i--)
             {
                 if ((search_opt[i] >= 33) && (search_opt[i] <= 126))
@@ -715,10 +711,6 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 
                 results[j] = new_item(name, "");
                 ++j;
-
-                // TODO: Look into this. This could work it just needs some tweaking
-                //results[j] = new_item(book_data[i]->name, "");
-                //++j;
             }
         }
 
@@ -739,8 +731,8 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
     }
 
     int ch, index;
-    ITEM *curr_item = NULL;
-    book_t *curr_book;
+    ITEM *curr_item   = NULL;
+    book_t *curr_book = NULL;
 
     set_menu_items(menu, results);
     post_menu(menu);
