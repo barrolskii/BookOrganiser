@@ -58,6 +58,22 @@ ITEM **results = NULL;
 /* records have been updated */
 int should_update = 0;
 
+void clear_previous_results(void)
+{
+    /* Cleanup the previous results */
+    if (results != NULL)
+    {
+        for (int i = 0; i < results_count; i++)
+        {
+            free((char*)results[i]->name.str);
+            free_item(results[i]);
+        }
+        free(results);
+        results_count = 0;
+        results       = NULL;
+    }
+}
+
 void print_main_menu_help_string(WINDOW *win)
 {
     mvwprintw(win, 17, 1, "<J><DOWN> - Move Down      <K><UP> - Move Up");
@@ -71,7 +87,6 @@ void print_list_books_help_string(WINDOW *win)
     mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
     wrefresh(win);
 }
-
 
 book_t *init_book(const char *name, const char *tags)
 {
@@ -115,7 +130,23 @@ int get_book_index(const char *name)
     return -1;
 }
 
-void print_book_info(WINDOW *win, const char *book_name)
+void print_book_info(WINDOW *win, book_t *book)
+{
+        werase(win);
+
+        // TODO: Split name on multiple lines if it is too long
+        mvwprintw(win, 1, 1, "%s",             book->name);
+        mvwprintw(win, 5, 1, "%s",             book->tags);
+        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
+        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
+        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
+
+        box(win, 0, 0);
+        wrefresh(win);
+
+}
+
+void print_book_info_from_name(WINDOW *win, const char *book_name)
 {
     int index = get_book_index(book_name);
 
@@ -131,7 +162,6 @@ void print_book_info(WINDOW *win, const char *book_name)
         book_t *book = book_data[index];
 
         // TODO: Split name on multiple lines if it is too long
-        // TODO: Maybe add a copy to clipboard option
         mvwprintw(win, 1, 1, "%s",             book->name);
         mvwprintw(win, 5, 1, "%s",             book->tags);
         mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
@@ -181,6 +211,21 @@ int add_node(book_node_t *node)
     should_update = 1;
 
     return 1;
+}
+
+book_t *node_contains(const char *name)
+{
+    book_node_t *node = head;
+
+    while (node)
+    {
+        if (strcmp(node->book->name, name) == 0)
+            return node->book;
+
+        node = node->next;
+    }
+
+    return NULL;
 }
 
 void free_node(book_node_t *node)
@@ -256,32 +301,97 @@ char **dir_get_files(char *path)
     return files;
 }
 
-void init(void)
+void init(int argc, char **argv)
 {
-    // TODO: Args
-    char *lib_path = "/home/ash/Documents/Books/library";
-    char *path = "/home/ash/Documents/Books";
-
-    // TODO: Define this
-    if (strlen(path) > 1024)
+    if (argc != 2)
     {
-        fprintf(stderr, "Error: Provided path [%s] is too long.\n Max supported path is 255 bytes\n", path);
+        fprintf(stderr, "Error: Path must be supplied\n");
         exit(1);
     }
 
-    if (!dir_exists(path))
+    /* We're subtracting 10 from the max path because when we copy the string      */
+    /* over to the library path the last directory will be /library/               */
+    /* /library/ does only have a length of 9 but we're including the null         */
+    /* termination character                                                       */
+    /* eg. ~/Documents/Dir/MyBooks/library/                                        */
+    /* The filesystem on my machine is EXT4 which doens't actually have any limits */
+    /*  to path length but we do have to put a limit in                            */
+    /* somewhere to allocate enough memory.                                        */
+    if (strlen(argv[1]) > (PATH_MAX - 10))
     {
-        fprintf(stderr, "Error: Provided path [%s] does not exist.\n", path);
+        fprintf(stderr, "Error: Provided path length is greater than maximum\n");
+        fprintf(stderr, "       supported path. Please supply a path that has\n");
+        fprintf(stderr, "       a length less than or equal to %d\n", PATH_MAX);
         exit(1);
     }
 
+    strcpy(books_path, argv[1]);
+
+    if (!dir_exists(books_path))
+    {
+        fprintf(stderr, "Error: [%s] does not exist\n", books_path);
+        exit(1);
+    }
+
+    /* Check if a trailing '/' was supplied with the path */
+    if (books_path[strlen(books_path) - 1] != '/')
+    {
+        books_path[strlen(books_path)] = '/';
+    }
+
+    strcpy(lib_path, books_path);
+
+    if (lib_path[strlen(lib_path) - 1] == '/')
+    {
+        strcat(lib_path, "library/");
+    }
+    else
+    {
+        strcat(lib_path, "/library/");
+    }
+
+    /* Check if the library path exists and if not then create it */
     if (!dir_exists(lib_path))
     {
         if (mkdir(lib_path, S_IRWXU) != 0)
         {
             fprintf(stderr, "Error: Failed to create library path [%s].\n", lib_path);
             fprintf(stderr, "mkdir failed with error message [%s]\n", strerror(errno));
+            exit(1);
         }
+    }
+
+    /* Check if data file for books exists */
+    if (access(BOOK_DATA_FILE, E_OK) == 0)
+    {
+        FILE *fp = fopen(BOOK_DATA_FILE, "r");
+
+        char name[1024] = {0};
+        char tags[1024] = {0};
+        char have_read;
+        char in_prog;
+        char to_read;
+
+        fscanf(fp, "%d\n", &book_count);
+
+
+        book_data = calloc(book_count, sizeof(book_t*));
+        for (int i = 0; i < book_count; i++)
+        {
+            fscanf(fp, "%[^,],%c,%c,%c,%[^\n]\n", name, &have_read, &in_prog, &to_read, tags);
+
+            book_data[i] = init_book(name, tags);
+            book_data[i]->have_read = have_read;
+            book_data[i]->in_prog   = in_prog;
+            book_data[i]->to_read   = to_read;
+        }
+
+        fclose(fp);
+    }
+    else
+    {
+        FILE *file = fopen(BOOK_DATA_FILE, "w");
+        fclose(file);
     }
 }
 
@@ -341,9 +451,6 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 
                 rename(old_path, new_path);
 
-                // TODO: Need this twice?
-                form_driver(form, REQ_CLR_FIELD);
-
                 memset(old_path, 0, MAX_LENGTH);
                 memset(new_path, 0, MAX_LENGTH);
 
@@ -392,19 +499,7 @@ book_cleanup:
 
 void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *form)
 {
-    // TODO: Function
-    /* Cleanup the previous results */
-    if (results != NULL)
-    {
-        for (int i = 0; i < results_count; i++)
-        {
-            free((char*)results[i]->name.str);
-            free_item(results[i]);
-        }
-        free(results);
-        results_count = 0;
-        results       = NULL;
-    }
+    clear_previous_results();
 
     werase(output_win);
     box(output_win, 0, 0);
@@ -471,10 +566,15 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
     for (int i = 0; i < book_count; i++)
     {
         if (strstr(book_data[i]->tags, search_opt))
-        {
             ++results_count;
-        }
     }
+
+    for (book_node_t *node = head; node; node = node->next)
+    {
+        if (strstr(node->book->tags, search_opt))
+            ++results_count;
+    }
+
 
     if (results_count == 0)
     {
@@ -488,7 +588,8 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
         char *name = NULL;
         results = calloc(results_count + 1, sizeof(ITEM*));
 
-        for (int i = 0, j = 0; i < book_count; i++)
+        int i = 0, j = 0;
+        for (; i < book_count; i++)
         {
             if (strstr(book_data[i]->tags, search_opt))
             {
@@ -501,16 +602,32 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
             }
         }
 
+
+        for (book_node_t *node = head; node; node = node->next)
+        {
+            if (strstr(node->book->tags, search_opt))
+            {
+                int len = strlen(node->book->name);
+                name = calloc(len + 1, sizeof(char));
+                strcpy(name, node->book->name);
+
+                results[j] = new_item(name, "");
+                ++j;
+            }
+        }
+
         name = NULL;
 
+        int index;
         ITEM *curr_item = NULL;
+        book_t *curr_book = NULL;
 
         set_menu_items(menu, results);
         post_menu(menu);
         pos_menu_cursor(menu);
 
         curr_item = current_item(menu);
-        print_book_info(output_win, item_name(curr_item));
+        print_book_info_from_name(output_win, item_name(curr_item));
 
         while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
         {
@@ -519,17 +636,34 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
                 case 'j':
                 case KEY_DOWN:
                     menu_driver(menu, REQ_DOWN_ITEM);
+                    curr_item = current_item(menu);
+                    index = get_book_index(item_name(curr_item));
+
+                    if (index == -1)
+                        curr_book = node_contains(item_name(curr_item));
+                    else
+                        curr_book = book_data[index];
+
                     break;
                 case 'k':
                 case KEY_UP:
                     menu_driver(menu, REQ_UP_ITEM);
+                    curr_item = current_item(menu);
+                    index = get_book_index(item_name(curr_item));
+
+                    if (index == -1)
+                        curr_book = node_contains(item_name(curr_item));
+                    else
+                        curr_book = book_data[index];
                     break;
             }
 
-            curr_item = current_item(menu);
 
-            /* Show the books info on the output window */
-            print_book_info(output_win, item_name(curr_item));
+
+            if (curr_book)
+                print_book_info(output_win, curr_book);
+            else
+                mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
         }
     }
 
@@ -542,22 +676,18 @@ clean_search:
 
 void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 {
-    /* Cleanup the previous results */
-    if (results != NULL)
-    {
-        for (int i = 0; i < results_count; i++)
-        {
-            free((char*)results[i]->name.str);
-            free_item(results[i]);
-        }
-        free(results);
-        results_count = 0;
-        results       = NULL;
-    }
+    clear_previous_results();
 
     for (int i = 0; i < book_count; i++)
     {
         if (book_data[i]->to_read)
+            ++results_count;
+    }
+
+
+    for (book_node_t *node = head; node; node = node->next)
+    {
+        if (node->book->to_read)
             ++results_count;
     }
 
@@ -574,7 +704,8 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
         char *name = NULL;
         results = calloc(results_count + 1, sizeof(ITEM*));
 
-        for (int i = 0, j = 0; i < book_count; i++)
+        int i = 0, j = 0;
+        for (; i < book_count; i++)
         {
             if (book_data[i]->to_read)
             {
@@ -591,18 +722,32 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
             }
         }
 
+        for (book_node_t *node = head; node; node = node->next)
+        {
+            if (node->book->to_read)
+            {
+                int len = strlen(node->book->name);
+                name = calloc(len + 1, sizeof(char));
+                strcpy(name, node->book->name);
+
+                results[j] = new_item(name, "");
+                ++j;
+            }
+        }
+
         name = NULL;
     }
 
-    int ch;
+    int ch, index;
     ITEM *curr_item = NULL;
+    book_t *curr_book;
 
     set_menu_items(menu, results);
     post_menu(menu);
     pos_menu_cursor(menu);
 
     curr_item = current_item(menu);
-    print_book_info(output_win, item_name(curr_item));
+    print_book_info_from_name(output_win, item_name(curr_item));
 
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {
@@ -611,17 +756,33 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
             case 'j':
             case KEY_DOWN:
                 menu_driver(menu, REQ_DOWN_ITEM);
+                curr_item = current_item(menu);
+                index = get_book_index(item_name(curr_item));
+
+                if (index == -1)
+                    curr_book = node_contains(item_name(curr_item));
+                else
+                    curr_book = book_data[index];
+
                 break;
             case 'k':
             case KEY_UP:
                 menu_driver(menu, REQ_UP_ITEM);
+                curr_item = current_item(menu);
+                index = get_book_index(item_name(curr_item));
+
+                if (index == -1)
+                    curr_book = node_contains(item_name(curr_item));
+                else
+                    curr_book = book_data[index];
+
                 break;
         }
 
-        curr_item = current_item(menu);
-
-        /* Show the books info on the output window */
-        print_book_info(output_win, item_name(curr_item));
+        if (curr_book)
+            print_book_info(output_win, curr_book);
+        else
+            mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
     }
 
     unpost_menu(menu);
@@ -629,30 +790,18 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 
 void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
 {
-    /* Cleanup the previous results */
-    if (results != NULL)
-    {
-        for (int i = 0; i < results_count; i++)
-        {
-            free((char*)results[i]->name.str);
-            free_item(results[i]);
-        }
-        free(results);
-        results_count = 0;
-        results       = NULL;
-    }
-
+    clear_previous_results();
 
     results_count = dir_count_files(path);
 
-    /* file count + 1 as ncurses likes the last item to be NULL */
-    results = calloc(results_count + 1, sizeof(ITEM*));
+    /* (file count + node count) + 1 as ncurses likes the last item to be NULL */
+    results = calloc( (results_count + node_count) + 1, sizeof(ITEM*));
 
     int i      = 0;
     char *name = NULL;
 
-    // TODO: Might not need to do the directory stuff here as the book data
-    //       is already available to us
+    /* We read the files in the library directory so we can flag any files */
+    /* that have been moved there by the user or other programs            */
     DIR *dir             = NULL;
     struct dirent *entry = NULL;
 
@@ -676,9 +825,6 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
         }
     }
 
-    // TODO: This only works for files that exist
-    //       Need to update this for newly added files
-
     name = NULL;
     closedir(dir);
 
@@ -690,11 +836,17 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     pos_menu_cursor(menu);
 
     curr_item = current_item(menu);
-    print_book_info(output_win, item_name(curr_item));
-    print_list_books_help_string(output_win);
 
     int index         = get_book_index(item_name(curr_item));
-    book_t *curr_book = book_data[index];
+    book_t *curr_book = NULL;
+
+    if (index == -1)
+        curr_book = node_contains(item_name(curr_item));
+    else
+        curr_book = book_data[index];
+
+    print_book_info(output_win, curr_book);
+    print_list_books_help_string(output_win);
 
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {
@@ -705,14 +857,22 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
                 menu_driver(menu, REQ_DOWN_ITEM);
                 curr_item = current_item(menu);
                 index = get_book_index(item_name(curr_item));
-                curr_book = book_data[index];
+
+                if (index == -1)
+                    curr_book = node_contains(item_name(curr_item));
+                else
+                    curr_book = book_data[index];
                 break;
             case 'k':
             case KEY_UP:
                 menu_driver(menu, REQ_UP_ITEM);
                 curr_item = current_item(menu);
                 index = get_book_index(item_name(curr_item));
-                curr_book = book_data[index];
+
+                if (index == -1)
+                    curr_book = node_contains(item_name(curr_item));
+                else
+                    curr_book = book_data[index];
                 break;
             case 'h':
                 curr_book->have_read = 1;
@@ -731,7 +891,12 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
         }
 
         /* Show the books info on the output window */
-        print_book_info(output_win, item_name(curr_item));
+        //print_book_info_from_name(output_win, item_name(curr_item));
+        if (curr_book)
+            print_book_info(output_win, curr_book);
+        else
+            mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
+
         print_list_books_help_string(output_win);
     }
 
@@ -740,85 +905,7 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
-    {
-        fprintf(stderr, "Error: Path must be supplied\n");
-        exit(1);
-    }
-
-    /* We're subtracting 10 from the max path because when we copy the string      */
-    /* over to the library path the last directory will be /library/               */
-    /* /library/ does only have a length of 9 but we're including the null         */
-    /* termination character                                                       */
-    /* eg. ~/Documents/Dir/MyBooks/library/                                        */
-    /* The filesystem on my machine is EXT4 which doens't actually have any limits */
-    /*  to path length but we do have to put a limit in                            */
-    /* somewhere to allocate enough memory.                                        */
-    if (strlen(argv[1]) > (PATH_MAX - 10))
-    {
-        fprintf(stderr, "Error: Provided path length is greater than maximum\n");
-        fprintf(stderr, "       supported path. Please supply a path that has\n");
-        fprintf(stderr, "       a length less than or equal to %d\n", PATH_MAX);
-        exit(1);
-    }
-
-    strcpy(books_path, argv[1]);
-
-    if (!dir_exists(books_path))
-    {
-        fprintf(stderr, "Error: [%s] does not exist\n", books_path);
-        exit(1);
-    }
-
-    /* Check if a trailing '/' was supplied with the path */
-    if (books_path[strlen(books_path) - 1] != '/')
-    {
-        books_path[strlen(books_path)] = '/';
-    }
-
-    strcpy(lib_path, books_path);
-
-    if (lib_path[strlen(lib_path) - 1] == '/')
-    {
-        strcat(lib_path, "library/");
-    }
-    else
-    {
-        strcat(lib_path, "/library/");
-    }
-
-    /* Check if data file for books exists */
-    if (access(BOOK_DATA_FILE, E_OK) == 0)
-    {
-        FILE *fp = fopen(BOOK_DATA_FILE, "r");
-
-        char name[1024] = {0};
-        char tags[1024] = {0};
-        char have_read;
-        char in_prog;
-        char to_read;
-
-        fscanf(fp, "%d\n", &book_count);
-
-
-        book_data = calloc(book_count, sizeof(book_t*));
-        for (int i = 0; i < book_count; i++)
-        {
-            fscanf(fp, "%[^,],%c,%c,%c,%[^\n]\n", name, &have_read, &in_prog, &to_read, tags);
-
-            book_data[i] = init_book(name, tags);
-            book_data[i]->have_read = have_read;
-            book_data[i]->in_prog   = in_prog;
-            book_data[i]->to_read   = to_read;
-        }
-
-        fclose(fp);
-    }
-    else
-    {
-        FILE *file = fopen(BOOK_DATA_FILE, "w");
-        fclose(file);
-    }
+    init(argc, argv);
 
     initscr();
     cbreak();
@@ -904,15 +991,16 @@ int main(int argc, char **argv)
 
                 if (curr_item == items[0])
                 {
-                    // TODO: Rename func pointer
-                    void (*func)(WINDOW*, FORM*, char*) = item_userptr(curr_item);
-                    func(output_win, tag_form, books_path);
+                    void (*check_for_new_books)(WINDOW*, FORM*, char*) = item_userptr(curr_item);
+
+                    check_for_new_books(output_win, tag_form, books_path);
                     print_main_menu_help_string(output_win);
                 }
                 else if (curr_item == items[1])
                 {
                     unpost_menu(main_menu);
                     void (*search_tags)(WINDOW*, WINDOW*, MENU*, FORM*) = item_userptr(curr_item);
+
                     search_tags(main_win, output_win, main_menu, tag_form);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
@@ -922,6 +1010,7 @@ int main(int argc, char **argv)
                 {
                     unpost_menu(main_menu);
                     void (*list_to_read)(WINDOW*, WINDOW*, MENU*) = item_userptr(curr_item);
+
                     list_to_read(main_win, output_win, main_menu);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
@@ -929,8 +1018,9 @@ int main(int argc, char **argv)
                 else if (curr_item == items[3])
                 {
                     unpost_menu(main_menu);
-                    void (*func)(WINDOW*, WINDOW*, MENU*, char*) = item_userptr(curr_item);
-                    func(main_win, output_win, main_menu, lib_path);
+                    void (*list_all_books)(WINDOW*, WINDOW*, MENU*, char*) = item_userptr(curr_item);
+
+                    list_all_books(main_win, output_win, main_menu, lib_path);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
                     print_main_menu_help_string(output_win);
