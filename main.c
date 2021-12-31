@@ -58,6 +58,21 @@ ITEM **results = NULL;
 /* records have been updated */
 int should_update = 0;
 
+void print_main_menu_help_string(WINDOW *win)
+{
+    mvwprintw(win, 17, 1, "<J><DOWN> - Move Down      <K><UP> - Move Up");
+    mvwprintw(win, 18, 1, "<ENTER>   - Select Option  <ESC> - Quit");
+    wrefresh(win);
+}
+
+void print_list_books_help_string(WINDOW *win)
+{
+    mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
+    mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
+    wrefresh(win);
+}
+
+
 book_t *init_book(const char *name, const char *tags)
 {
     book_t *new_book = calloc(1, sizeof(book_t));
@@ -274,11 +289,15 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 {
     unsigned count = dir_count_files(path);
 
+    werase(win);
+    box(win, 0, 0);
+    wrefresh(win);
+
+
     if (count == 0)
     {
-        werase(win);
-        box(win, 0, 0);
         mvwprintw(win, 2, 2, "No new books detected");
+        print_main_menu_help_string(win);
         wrefresh(win);
         return;
     }
@@ -387,6 +406,8 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
         results       = NULL;
     }
 
+    werase(output_win);
+    box(output_win, 0, 0);
     post_form(form);
     wrefresh(output_win);
 
@@ -440,7 +461,6 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
                 form_driver(form, REQ_END_LINE);
                 break;
             case ESCAPE_KEY:
-                unpost_form(form);
                 goto clean_search;
                 break;
             default:
@@ -514,10 +534,10 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
     }
 
 clean_search:
-
     unpost_menu(menu);
     form_driver(form, REQ_CLR_FIELD);
-
+    unpost_form(form);
+    wrefresh(output_win);
 }
 
 void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
@@ -546,7 +566,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
         werase(output_win);
         box(output_win, 0, 0);
         mvwprintw(output_win, 2, 2, "No books to read detected");
-        wrefresh(output_win);
+        print_main_menu_help_string(output_win);
         return;
     }
     else
@@ -605,13 +625,6 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
     }
 
     unpost_menu(menu);
-}
-
-void print_list_books_help_string(WINDOW *win)
-{
-    mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
-    mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
-    wrefresh(win);
 }
 
 void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
@@ -870,6 +883,8 @@ int main(int argc, char **argv)
     wrefresh(main_win);
     wrefresh(output_win);
 
+    print_main_menu_help_string(output_win);
+
     /* Main loop */
     while ((ch = wgetch(main_win)) != ESCAPE_KEY)
     {
@@ -892,6 +907,7 @@ int main(int argc, char **argv)
                     // TODO: Rename func pointer
                     void (*func)(WINDOW*, FORM*, char*) = item_userptr(curr_item);
                     func(output_win, tag_form, books_path);
+                    print_main_menu_help_string(output_win);
                 }
                 else if (curr_item == items[1])
                 {
@@ -900,6 +916,7 @@ int main(int argc, char **argv)
                     search_tags(main_win, output_win, main_menu, tag_form);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
+                    print_main_menu_help_string(output_win);
                 }
                 else if (curr_item == items[2])
                 {
@@ -916,6 +933,7 @@ int main(int argc, char **argv)
                     func(main_win, output_win, main_menu, lib_path);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
+                    print_main_menu_help_string(output_win);
                 }
 
                 pos_menu_cursor(main_menu);
