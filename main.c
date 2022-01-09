@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+//#include <stdlib.h>
+//#include <string.h>
 #include <unistd.h>
 #include <limits.h>
 #include <dirent.h>
@@ -12,34 +12,9 @@
 
 #include <sys/stat.h>
 
-#define ENTER 10
-#define ESCAPE_KEY 27
-#define MAX_LENGTH NAME_MAX + PATH_MAX
-
-#define VERSION        "2.0.1"
-#define BOOK_DATA_FILE "books.csv"
-
-#define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
-
-#define FREE_2D_ARR(arr, size)     \
-    for (int i = 0; i < size; i++) \
-        free(arr[i]);              \
-    free(arr);                     \
-
-typedef struct {
-    char *name;
-    char *tags;
-    unsigned char have_read : 1;
-    unsigned char in_prog : 1;
-    unsigned char to_read : 1;
-} book_t;
-
-struct _book_node {
-    book_t *book;
-    struct _book_node *next;
-};
-
-typedef struct _book_node book_node_t;
+#include "defines.h"
+#include "book.h"
+#include "dir_utils.h"
 
 char books_path[PATH_MAX] = {0};
 char lib_path[PATH_MAX]   = {0};
@@ -87,34 +62,6 @@ void print_list_books_help_string(WINDOW *win)
     mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
     mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
     wrefresh(win);
-}
-
-book_t *init_book(const char *name, const char *tags)
-{
-    book_t *new_book = calloc(1, sizeof(book_t));
-
-    new_book->name = malloc( (sizeof(char) * strlen(name)) + 1);
-    strcpy(new_book->name, name);
-    new_book->name[strlen(new_book->name)] = '\0';
-
-    new_book->tags = malloc( (sizeof(char) * strlen(tags)) + 1);
-    strcpy(new_book->tags, tags);
-    new_book->tags[strlen(new_book->tags)] = '\0';
-
-    /* This fixes an issue with the form character padding       */
-    /* I've tried changing it to be a NULL termination character */
-    /* but that doesn't work. So we just find the last valid     */
-    /* character and put a NULL terminator after that            */
-    for (int i = strlen(new_book->tags); i > 0; i--)
-    {
-        if ((new_book->tags[i] >= 33) && (new_book->tags[i] <= 126))
-        {
-            new_book->tags[i + 1] = '\0';
-            break;
-        }
-    }
-
-    return new_book;
 }
 
 int get_book_index(const char *name)
@@ -173,21 +120,6 @@ void print_book_info_from_name(WINDOW *win, const char *book_name)
 
 }
 
-void free_book(book_t *book)
-{
-    free(book->name);
-    free(book->tags);
-    free(book);
-}
-
-book_node_t *init_book_node(const char *name, const char *tags)
-{
-    book_node_t *new_node = calloc(1, sizeof(book_t));
-    new_node->book = init_book(name, tags);
-
-    return new_node;
-}
-
 int add_node(book_node_t *node)
 {
     if (!head)
@@ -225,77 +157,6 @@ book_t *node_contains(const char *name)
     }
 
     return NULL;
-}
-
-void free_node(book_node_t *node)
-{
-    free_book(node->book);
-    free(node);
-}
-
-int dir_exists(char *path)
-{
-    DIR *dir = NULL;
-
-    if ((dir = opendir(path)) != NULL)
-    {
-        closedir(dir);
-        return 1;
-    }
-
-    return 0;
-}
-
-unsigned dir_count_files(char *path)
-{
-    unsigned count = 0;
-
-    DIR *dir = NULL;
-    struct dirent *entry = NULL;
-
-    if ((dir = opendir(path)) != NULL)
-    {
-        while ((entry = readdir(dir)) != NULL)
-        {
-            if (entry->d_type == DT_REG)
-                ++count;
-        }
-    }
-
-    closedir(dir);
-
-    return count;
-}
-
-char **dir_get_files(char *path)
-{
-    int i = 0;
-    unsigned file_count = dir_count_files(path);
-
-    char **files = calloc(file_count, sizeof(char*));
-    for (int i = 0; i < file_count; i++)
-    {
-        files[i] = calloc(NAME_MAX, sizeof(char));
-    }
-
-    DIR *dir = NULL;
-    struct dirent *entry = NULL;
-
-    if ((dir = opendir(path)) != NULL)
-    {
-        while ((entry = readdir(dir)) != NULL)
-        {
-            if (entry->d_type != DT_REG)
-                continue;
-
-            memcpy(files[i], entry->d_name, NAME_MAX);
-            i++;
-        }
-    }
-
-    closedir(dir);
-
-    return files;
 }
 
 void init(int argc, char **argv)
@@ -846,8 +707,15 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     else
         curr_book = book_data[index];
 
-    print_book_info(output_win, curr_book);
-    print_list_books_help_string(output_win);
+    if (curr_book == NULL)
+    {
+        mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
+    }
+    else
+    {
+        print_book_info(output_win, curr_book);
+        print_list_books_help_string(output_win);
+    }
 
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {

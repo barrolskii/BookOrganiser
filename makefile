@@ -1,12 +1,16 @@
 CC=gcc
 CFLAGS=-Wall -O3
-OBJS=
+OBJS=book.o dir_utils.o
 LIBS=-lncurses -lmenu -lform
-EXE=prog
 
-$(EXE): main.c
-	$(CC) $(CFLAGS) $(LIBS) main.c -o $(EXE)
+all: bookorganiser
+
+%.o: %.c %.h
+	$(CC) $(CFLAGS) -c $^
+
+book_organiser: $(OBJS) main.c
+	$(CC) $(CFLAGS) $(LIBS) -o $@ $^
 
 clean:
-	rm $(EXE) *.csv
+	rm $(EXE) $(OBJS) *.csv *.gch
 

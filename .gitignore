@@ -1,4 +1,6 @@
 *.o
+*.csv
+*.gch
 vgcore.*
 prog
 bookorganiser
