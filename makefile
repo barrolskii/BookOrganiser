@@ -13,7 +13,7 @@ bookorganiser: $(OBJS) main.c
 	$(CC) $(CFLAGS) $(LIBS) -o $@ $^
 
 clean:
-	rm $(EXE) $(OBJS) *.csv *.gch
+	rm bookorganiser $(OBJS) *.csv *.gch
 
 install: output
 	mkdir -p $(PREFIX)/bin
