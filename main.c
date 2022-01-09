@@ -16,7 +16,7 @@
 #define ESCAPE_KEY 27
 #define MAX_LENGTH NAME_MAX + PATH_MAX
 
-#define VERSION        "2.0.0"
+#define VERSION        "2.0.1"
 #define BOOK_DATA_FILE "books.csv"
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
@@ -785,6 +785,15 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
     clear_previous_results();
 
     results_count = dir_count_files(path);
+
+    if (results_count == 0)
+    {
+        werase(output_win);
+        box(output_win, 0, 0);
+        mvwprintw(output_win, 2, 2, "Unable to list books. No books found");
+        wrefresh(output_win);
+        return;
+    }
 
     /* (file count + node count) + 1 as ncurses likes the last item to be NULL */
     results = calloc( (results_count + node_count) + 1, sizeof(ITEM*));
