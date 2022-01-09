@@ -5,7 +5,7 @@
 #define ESCAPE_KEY 27
 #define MAX_LENGTH NAME_MAX + PATH_MAX
 
-#define VERSION        "2.0.1"
+#define VERSION        "2.1.0"
 #define BOOK_DATA_FILE "books.csv"
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))

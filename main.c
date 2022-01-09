@@ -82,11 +82,25 @@ void print_book_info(WINDOW *win, book_t *book)
 {
         werase(win);
 
-        mvwprintw(win, 1, 1, "%s",             book->name);
-        mvwprintw(win, 5, 1, "%s",             book->tags);
-        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
-        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
-        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
+        size_t len = strlen(book->name);
+
+        /* Split the book name on multiple lines if the name is longer than 55 chars */
+        /* The limit is 55 chars as this is an integer from dividing 255 (NAME_MAX)  */
+        /* by 5. We can get a whole integer by dividing 255 by 3 but this gives us   */
+        /* 85 and is a bit too long                                                  */
+        for (int i = 0, j = 1; j < 5; j++)
+        {
+            mvwprintw(win, j, 1, "%.55s", (book->name + i));
+
+            i += 55;
+            if (i > len || i > NAME_MAX)
+                break;
+        }
+
+        mvwprintw(win, 7, 1, "%s",             book->tags);
+        mvwprintw(win, 11, 1, "To read:   %d",   book->to_read);
+        mvwprintw(win, 12, 1, "In prog:   %d",   book->in_prog);
+        mvwprintw(win, 13, 1, "Have read: %d", book->have_read);
 
         box(win, 0, 0);
         wrefresh(win);
@@ -108,14 +122,7 @@ void print_book_info_from_name(WINDOW *win, const char *book_name)
 
         book_t *book = book_data[index];
 
-        mvwprintw(win, 1, 1, "%s",             book->name);
-        mvwprintw(win, 5, 1, "%s",             book->tags);
-        mvwprintw(win, 10, 1, "To read: %d",   book->to_read);
-        mvwprintw(win, 11, 1, "In prog: %d",   book->in_prog);
-        mvwprintw(win, 12, 1, "Have read: %d", book->have_read);
-
-        box(win, 0, 0);
-        wrefresh(win);
+        print_book_info(win, book);
     }
 
 }
@@ -157,6 +164,18 @@ book_t *node_contains(const char *name)
     }
 
     return NULL;
+}
+
+void trim_field_whitespace(char *field, size_t len)
+{
+        for (int i = strlen(field); i > 0; i--)
+        {
+            if ((field[i] >= 33) && (field[i] <= 126))
+            {
+                field[i + 1] = '\0';
+                break;
+            }
+        }
 }
 
 void init(int argc, char **argv)
@@ -380,14 +399,7 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
             form_driver(form, REQ_CLR_FIELD);
             unpost_form(form);
 
-            for (int i = strlen(search_opt); i > 0; i--)
-            {
-                if ((search_opt[i] >= 33) && (search_opt[i] <= 126))
-                {
-                    search_opt[i + 1] = '\0';
-                    break;
-                }
-            }
+            trim_field_whitespace(search_opt, strlen(search_opt));
 
             mvwprintw(output_win, 7, 1, "tags: %s", search_opt);
             wrefresh(output_win);
@@ -829,6 +841,7 @@ int main(int argc, char **argv)
 
     set_menu_win(main_menu, main_win);
     set_menu_sub(main_menu, derwin(main_win, 9, 60, 2, 2));
+    set_menu_format(main_menu, 9, 1);
 
     box(main_win, 0, 0);
     box(output_win, 0, 0);
