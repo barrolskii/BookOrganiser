@@ -1,6 +1,14 @@
 # Book Organiser
 
-A program to organise my digital library.
+A program to organise my digital library of books.
 
-This project is currently in a working state but is still under development.
+## Dependencies
+
+ncurses
+
+## Installation
+
+``` shell 
+sudo make clean install
+```
 

@@ -305,15 +305,15 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
     post_form(form);
 
     mvwprintw(win, 12, 1, "Suggested tags:");
-    mvwprintw(win, 13, 4, "%s",  categories[0]);
-    mvwprintw(win, 13, 26, "%s", categories[1]);
-    mvwprintw(win, 14, 4, "%s",    categories[2]);
+    mvwprintw(win, 13, 4,  "%s",   categories[0]);
+    mvwprintw(win, 13, 26, "%s",   categories[1]);
+    mvwprintw(win, 14, 4,  "%s",   categories[2]);
     mvwprintw(win, 14, 26, "%s",   categories[3]);
-    mvwprintw(win, 15, 4, "%s",    categories[4]);
+    mvwprintw(win, 15, 4,  "%s",   categories[4]);
     mvwprintw(win, 15, 26, "%s",   categories[5]);
-    mvwprintw(win, 16, 4, "%s",    categories[6]);
+    mvwprintw(win, 16, 4,  "%s",   categories[6]);
     mvwprintw(win, 16, 26, "%s",   categories[7]);
-    mvwprintw(win, 17, 4, "%s",    categories[8]);
+    mvwprintw(win, 17, 4,  "%s",   categories[8]);
     mvwprintw(win, 17, 26, "%s",   categories[9]);
 
     wrefresh(win);
