@@ -15,7 +15,7 @@ bookorganiser: $(OBJS) main.c
 clean:
 	rm bookorganiser $(OBJS) *.csv *.gch
 
-install: output
+install: bookorganiser
 	mkdir -p $(PREFIX)/bin
 	cp -f bookorganiser $(PREFIX)/bin/bookorganiser
 	chmod 755 $(PREFIX)/bin/bookorganiser
