@@ -40,7 +40,7 @@ char **dir_get_files(char *path)
     unsigned file_count = dir_count_files(path);
 
     char **files = calloc(file_count, sizeof(char*));
-    for (int i = 0; i < file_count; i++)
+    for (unsigned i = 0; i < file_count; i++)
     {
         files[i] = calloc(NAME_MAX, sizeof(char));
     }

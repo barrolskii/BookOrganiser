@@ -50,7 +50,7 @@ void clear_previous_results(void)
     /* Cleanup the previous results */
     if (results != NULL)
     {
-        for (int i = 0; i < results_count; i++)
+        for (unsigned i = 0; i < results_count; i++)
         {
             free((char*)results[i]->name.str);
             free_item(results[i]);
@@ -77,7 +77,7 @@ void print_list_books_help_string(WINDOW *win)
 
 int get_book_index(const char *name)
 {
-    for (int i = 0; i < book_count; i++)
+    for (unsigned i = 0; i < book_count; i++)
     {
         if (*name != book_data[i]->name[0])
             continue;
@@ -99,7 +99,7 @@ void print_book_info(WINDOW *win, book_t *book)
         /* The limit is 55 chars as this is an integer from dividing 255 (NAME_MAX)  */
         /* by 5. We can get a whole integer by dividing 255 by 3 but this gives us   */
         /* 85 and is a bit too long                                                  */
-        for (int i = 0, j = 1; j < 5; j++)
+        for (size_t i = 0, j = 1; j < 5; j++)
         {
             mvwprintw(win, j, 1, "%.55s", (book->name + i));
 
@@ -177,7 +177,7 @@ book_t *node_contains(const char *name)
     return NULL;
 }
 
-void trim_field_whitespace(char *field, size_t len)
+void trim_field_whitespace(char *field)
 {
         for (int i = strlen(field); i > 0; i--)
         {
@@ -260,11 +260,11 @@ void init(int argc, char **argv)
         char in_prog;
         char to_read;
 
-        fscanf(fp, "%d\n", &book_count);
+        fscanf(fp, "%u\n", &book_count);
 
 
         book_data = calloc(book_count, sizeof(book_t*));
-        for (int i = 0; i < book_count; i++)
+        for (unsigned i = 0; i < book_count; i++)
         {
             fscanf(fp, "%[^,],%c,%c,%c,%[^\n]\n", name, &have_read, &in_prog, &to_read, tags);
 
@@ -323,7 +323,7 @@ void check_for_books(WINDOW *win, FORM *form, char *path)
 
     int ch;
 
-    for (int i = 0; i < count; i++)
+    for (unsigned i = 0; i < count; i++)
     {
         /* Clear previous output and update the window with new output */
         wmove(win, 1, 1);
@@ -422,7 +422,7 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
             form_driver(form, REQ_CLR_FIELD);
             unpost_form(form);
 
-            trim_field_whitespace(search_opt, strlen(search_opt));
+            trim_field_whitespace(search_opt);
 
             mvwprintw(output_win, 7, 1, "tags: %s", search_opt);
             wrefresh(output_win);
@@ -455,7 +455,7 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
         }
     }
 
-    for (int i = 0; i < book_count; i++)
+    for (unsigned i = 0; i < book_count; i++)
     {
         if (strstr(book_data[i]->tags, search_opt))
             ++results_count;
@@ -480,7 +480,7 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
         char *name = NULL;
         results = calloc(results_count + 1, sizeof(ITEM*));
 
-        int i = 0, j = 0;
+        unsigned i = 0, j = 0;
         for (; i < book_count; i++)
         {
             if (strstr(book_data[i]->tags, search_opt))
@@ -570,7 +570,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 {
     clear_previous_results();
 
-    for (int i = 0; i < book_count; i++)
+    for (unsigned i = 0; i < book_count; i++)
     {
         if (book_data[i]->to_read)
             ++results_count;
@@ -596,7 +596,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
         char *name = NULL;
         results = calloc(results_count + 1, sizeof(ITEM*));
 
-        int i = 0, j = 0;
+        unsigned i = 0, j = 0;
         for (; i < book_count; i++)
         {
             if (book_data[i]->to_read)
@@ -943,7 +943,7 @@ int main(int argc, char **argv)
     free_field(field[0]);
 
     free_menu(main_menu);
-    for (int i = 0; i < ARR_SIZE(items); i++)
+    for (size_t i = 0; i < ARR_SIZE(items); i++)
         free_item(items[i]);
 
     delwin(main_win);
@@ -957,7 +957,7 @@ int main(int argc, char **argv)
 
         fprintf(fp, "%d\n", book_count + node_count);
 
-        for (int i = 0; i < book_count; i++)
+        for (unsigned i = 0; i < book_count; i++)
         {
             fprintf(fp, "%s,%d,%d,%d,%s\n", book_data[i]->name,
                                             book_data[i]->have_read,
@@ -978,13 +978,13 @@ int main(int argc, char **argv)
         fclose(fp);
     }
 
-    for (int i = 0; i < book_count; i++)
+    for (unsigned i = 0; i < book_count; i++)
     {
         free_book(book_data[i]);
     }
     free(book_data);
 
-    for (int i = 0; i < results_count; i++)
+    for (unsigned i = 0; i < results_count; i++)
     {
         /* The cast from const char* to char* here is a bit of a code smell here */
         /* but this is an easy way to free the memory for the results name as  */

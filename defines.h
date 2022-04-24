@@ -11,7 +11,7 @@
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 #define FREE_2D_ARR(arr, size)     \
-    for (int i = 0; i < size; i++) \
+    for (unsigned i = 0; i < size; i++) \
         free(arr[i]);              \
     free(arr);                     \
 
