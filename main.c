@@ -32,6 +32,12 @@ ITEM **results = NULL;
 /* records have been updated */
 int should_update = 0;
 
+/* Window box dimensions */
+int lines   = 0;
+int cols    = 0;
+int start_y = 0;
+int start_x = 0;
+
 char *categories[] = {
     "Computer Science",
     "Philosophy and Psychology",
@@ -63,15 +69,15 @@ void clear_previous_results(void)
 
 void print_main_menu_help_string(WINDOW *win)
 {
-    mvwprintw(win, 17, 1, "<J><DOWN> - Move Down      <K><UP> - Move Up");
-    mvwprintw(win, 18, 1, "<ENTER>   - Select Option  <ESC> - Quit");
+    mvwprintw(win, (lines - 3), 1, "<J><DOWN> - Move Down      <K><UP> - Move Up");
+    mvwprintw(win, (lines - 2), 1, "<ENTER>   - Select Option  <ESC> - Quit");
     wrefresh(win);
 }
 
 void print_list_books_help_string(WINDOW *win)
 {
-    mvwprintw(win, 17, 1, "<R> - Set To Read    <P>   - Set In Progress ");
-    mvwprintw(win, 18, 1, "<H> - Set Have Read  <ESC> - Quit");
+    mvwprintw(win, (lines - 3), 1, "<R> - Set To Read    <P>   - Set In Progress ");
+    mvwprintw(win, (lines - 2), 1, "<H> - Set Have Read  <ESC> - Quit");
     wrefresh(win);
 }
 
@@ -91,31 +97,30 @@ int get_book_index(const char *name)
 
 void print_book_info(WINDOW *win, book_t *book)
 {
-        werase(win);
+    werase(win);
 
-        size_t len = strlen(book->name);
+    size_t len = strlen(book->name);
 
-        /* Split the book name on multiple lines if the name is longer than 55 chars */
-        /* The limit is 55 chars as this is an integer from dividing 255 (NAME_MAX)  */
-        /* by 5. We can get a whole integer by dividing 255 by 3 but this gives us   */
-        /* 85 and is a bit too long                                                  */
-        for (size_t i = 0, j = 1; j < 5; j++)
-        {
-            mvwprintw(win, j, 1, "%.55s", (book->name + i));
+    /* Split the book name on multiple lines if the name is longer than 55 chars */
+    /* The limit is 55 chars as this is an integer from dividing 255 (NAME_MAX)  */
+    /* by 5. We can get a whole integer by dividing 255 by 3 but this gives us   */
+    /* 85 and is a bit too long                                                  */
+    for (size_t i = 0, j = 1; j < 5; j++)
+    {
+        mvwprintw(win, j, 1, "%.55s", (book->name + i));
 
-            i += 55;
-            if (i > len || i > NAME_MAX)
-                break;
-        }
+        i += 55;
+        if (i > len || i > NAME_MAX)
+            break;
+    }
 
-        mvwprintw(win, 7, 1, "%s",             book->tags);
-        mvwprintw(win, 11, 1, "To read:   %d", book->to_read);
-        mvwprintw(win, 12, 1, "In prog:   %d", book->in_prog);
-        mvwprintw(win, 13, 1, "Have read: %d", book->have_read);
+    mvwprintw(win, 7, 1, "%s",             book->tags);
+    mvwprintw(win, 11, 1, "To read:   %d", book->to_read);
+    mvwprintw(win, 12, 1, "In prog:   %d", book->in_prog);
+    mvwprintw(win, 13, 1, "Have read: %d", book->have_read);
 
-        box(win, 0, 0);
-        wrefresh(win);
-
+    box(win, 0, 0);
+    wrefresh(win);
 }
 
 void print_book_info_from_name(WINDOW *win, const char *book_name)
@@ -816,6 +821,21 @@ int main(int argc, char **argv)
     noecho();
     keypad(stdscr, TRUE);
 
+    /* Store the current sessions lines and columns */
+    getmaxyx(stdscr, lines, cols);
+
+    if (cols < MIN_WIDTH)
+    {
+        endwin();
+        fprintf(stderr, "Error: Terminal width is too small\n");
+        goto cleanup;
+    }
+
+    /* Decrement lines as we don't want the border to go off the screen */
+    lines--;
+    cols /= 2;
+
+
     FIELD *field[2];
     FORM  *tag_form;
 
@@ -824,7 +844,7 @@ int main(int argc, char **argv)
 
     int ch;
 
-    field[0] = new_field(1, 50, 1, 1, 1, 0);
+    field[0] = new_field(1, ((cols / 3) * 2), 1, 1, 1, 0);
     field[1] = NULL;
 
     /* Set field options  */
@@ -852,19 +872,19 @@ int main(int argc, char **argv)
     main_menu = new_menu(items);
 
     /* Create windows */
-    WINDOW *main_win   = newwin(20, (COLS / 2), 0, 0);
-    WINDOW *output_win = newwin(20, (COLS / 2), 0, (COLS / 2));
+    WINDOW *main_win   = newwin(lines, cols, start_y, start_x);
+    WINDOW *output_win = newwin(lines, cols, start_y, cols);
 
     keypad(main_win, TRUE);
     keypad(output_win, TRUE);
 
     /* Set main window and sub window */
     set_form_win(tag_form, output_win);
-    set_form_sub(tag_form, derwin(output_win, 9, 60, 9, 2));
+    set_form_sub(tag_form, derwin(output_win, 9, ((COLS / 2) - 10), 9, 2)); /* orig, nlines, ncols, begin_y, begin_x */
 
     set_menu_win(main_menu, main_win);
-    set_menu_sub(main_menu, derwin(main_win, 9, 60, 2, 2));
-    set_menu_format(main_menu, 9, 1);
+    set_menu_sub(main_menu, derwin(main_win, (lines - 3), ((COLS / 2) - 10), 2, 2));
+    set_menu_format(main_menu, (lines - 3), 1);
 
     box(main_win, 0, 0);
     box(output_win, 0, 0);
@@ -950,6 +970,7 @@ int main(int argc, char **argv)
     delwin(output_win);
     endwin();
 
+cleanup:
     if (should_update)
     {
         /* Write book data to the CSV file */

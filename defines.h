@@ -1,11 +1,12 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-#define ENTER 10
+#define ENTER      10
 #define ESCAPE_KEY 27
+#define MIN_WIDTH  64
 #define MAX_LENGTH NAME_MAX + PATH_MAX
 
-#define VERSION        "2.1.1"
+#define VERSION        "2.2.0"
 #define BOOK_DATA_FILE "books.csv"
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
