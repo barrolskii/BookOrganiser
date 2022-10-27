@@ -3,6 +3,8 @@
 #include <limits.h>
 #include <dirent.h>
 #include <errno.h>
+#include <argp.h>
+#include <argz.h>
 
 #include <ncurses.h>
 #include <menu.h>
@@ -14,8 +16,9 @@
 #include "book.h"
 #include "dir_utils.h"
 
-char books_path[PATH_MAX] = {0};
-char lib_path[PATH_MAX]   = {0};
+char books_path[PATH_MAX]     = {0};
+char lib_path[PATH_MAX]       = {0};
+char data_file_path[PATH_MAX] = {0};
 
 unsigned book_count = 0;
 book_t **book_data = NULL; /* Stores info about every book */
@@ -50,6 +53,22 @@ char *categories[] = {
     "Literature",
     "History and Geography"
 };
+
+/* Globals needed for argument parsing with argp/argz */
+struct arguments {
+    char *argz;
+    size_t len;
+};
+
+static struct argp_option options[] = {
+    { "path", 'p', "STRING", 0, "Path to directory containing books" },
+    {0}
+};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state);
+
+const char *argp_program_version = VERSION;
+static struct argp argp = {options, parse_opt, "path", VERSION};
 
 void clear_previous_results(void)
 {
@@ -194,31 +213,67 @@ void trim_field_whitespace(char *field)
         }
 }
 
+static error_t parse_opt(int key, char *arg, struct argp_state *state)
+{
+    struct arguments *a = (struct arguments*)state->input;
+
+    switch (key)
+    {
+        case 'p':
+        {
+            argz_add(&a->argz, &a->len, arg);
+            if (strlen(arg) >= PATH_MAX)
+            {
+                fprintf(stderr, "Error: Provided path is too long. Path must be shorter than %d\n", PATH_MAX);
+                exit(1);
+            }
+            strcpy(books_path, arg);
+            break;
+        }
+        case ARGP_KEY_ARG:
+            argz_add(&a->argz, &a->len, arg);
+            break;
+        case ARGP_KEY_INIT:
+            a->argz = 0;
+            a->len = 0;
+            break;
+        case ARGP_KEY_END:
+        {
+            size_t count = argz_count(a->argz, a->len);
+            if (count < 1)
+                argp_failure(state, 1, 0, "too few arguments");
+            else if (count > 1)
+                argp_failure(state, 1, 0, "too many arguments");
+        }
+        break;
+    }
+
+    return 0;
+}
+
 void init(int argc, char **argv)
 {
-    if (argc != 2)
+    struct arguments args = {0};
+    if (argp_parse(&argp, argc, argv, 0, 0, &args) == 0)
     {
-        fprintf(stderr, "Error: Path must be supplied\n");
+        const char *prev_arg = NULL;
+        char *curr_arg;
+
+        while ((curr_arg = argz_next (args.argz, args.len, prev_arg)))
+        {
+            if (strcmp(books_path, "") == 0)
+                strcpy(books_path, curr_arg);
+
+            prev_arg = curr_arg;
+        }
+
+        free(args.argz);
+    }
+    else
+    {
+        fprintf(stderr, "Error: argp_parse is unable to parse command arguments");
         exit(1);
     }
-
-    /* We're subtracting 10 from the max path because when we copy the string      */
-    /* over to the library path the last directory will be /library/               */
-    /* /library/ does only have a length of 9 but we're including the null         */
-    /* termination character                                                       */
-    /* eg. ~/Documents/Dir/MyBooks/library/                                        */
-    /* The filesystem on my machine is EXT4 which doens't actually have any limits */
-    /*  to path length but we do have to put a limit in                            */
-    /* somewhere to allocate enough memory.                                        */
-    if (strlen(argv[1]) > (PATH_MAX - 10))
-    {
-        fprintf(stderr, "Error: Provided path length is greater than maximum\n");
-        fprintf(stderr, "       supported path. Please supply a path that has\n");
-        fprintf(stderr, "       a length less than or equal to %d\n", PATH_MAX);
-        exit(1);
-    }
-
-    strcpy(books_path, argv[1]);
 
     if (!dir_exists(books_path))
     {
@@ -254,10 +309,28 @@ void init(int argc, char **argv)
         }
     }
 
-    /* Check if data file for books exists */
-    if (access(BOOK_DATA_FILE, E_OK) == 0)
+    /* Create the path for the book data file */
+    const char *homedir = getenv("HOME");
+    strcpy(data_file_path, homedir);
+    strcat(data_file_path, "/");
+    strcat(data_file_path, BOOK_DATA_PATH);
+
+    /* Create the book organiser directory first before we try */
+    if (!dir_exists(data_file_path))
     {
-        FILE *fp = fopen(BOOK_DATA_FILE, "r");
+        if (mkdir(data_file_path, S_IRWXU) != 0)
+        {
+            fprintf(stderr, "Error: Failed to create directory for bookorganiser data file\n");
+            fprintf(stderr, "%s\n", strerror(errno));
+        }
+    }
+
+    strcat(data_file_path, BOOK_DATA_FILE);
+
+    /* Check if data file for books exists */
+    if (access(data_file_path, E_OK) == 0)
+    {
+        FILE *fp = fopen(data_file_path, "r");
 
         char name[1024] = {0};
         char tags[1024] = {0};
@@ -283,7 +356,13 @@ void init(int argc, char **argv)
     }
     else
     {
-        FILE *file = fopen(BOOK_DATA_FILE, "w");
+        FILE *file = fopen(data_file_path, "w+");
+        if (file == NULL)
+        {
+            fprintf(stderr, "Error: Unable to create file for book data in path %s\n", data_file_path);
+            fprintf(stderr, "%s\n", strerror(errno));
+            exit(1);
+        }
         fclose(file);
     }
 }
@@ -974,7 +1053,7 @@ cleanup:
     if (should_update)
     {
         /* Write book data to the CSV file */
-        FILE *fp = fopen(BOOK_DATA_FILE, "w");
+        FILE *fp = fopen(data_file_path, "w");
 
         fprintf(fp, "%d\n", book_count + node_count);
 
