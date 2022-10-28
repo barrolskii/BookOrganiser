@@ -61,14 +61,14 @@ struct arguments {
 };
 
 static struct argp_option options[] = {
-    { "path", 'p', "STRING", 0, "Path to directory containing books" },
+    { "path", 'p', "STRING", 0, "Path to directory containing books", 0},
     {0}
 };
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state);
 
 const char *argp_program_version = VERSION;
-static struct argp argp = {options, parse_opt, "path", VERSION};
+static struct argp argp = {options, parse_opt, "path", VERSION, NULL, NULL, NULL};
 
 void clear_previous_results(void)
 {
@@ -650,20 +650,20 @@ clean_search:
     wrefresh(output_win);
 }
 
-void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
+void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu, int to_read)
 {
     clear_previous_results();
 
     for (unsigned i = 0; i < book_count; i++)
     {
-        if (book_data[i]->to_read)
+        if (book_data[i]->to_read == to_read)
             ++results_count;
     }
 
 
     for (book_node_t *node = head; node; node = node->next)
     {
-        if (node->book->to_read)
+        if (node->book->to_read == to_read)
             ++results_count;
     }
 
@@ -683,7 +683,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
         unsigned i = 0, j = 0;
         for (; i < book_count; i++)
         {
-            if (book_data[i]->to_read)
+            if (book_data[i]->to_read == to_read)
             {
                 int len = strlen(book_data[i]->name);
                 name = calloc(len + 1, sizeof(char));
@@ -696,7 +696,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 
         for (book_node_t *node = head; node; node = node->next)
         {
-            if (node->book->to_read)
+            if (node->book->to_read == to_read)
             {
                 int len = strlen(node->book->name);
                 name = calloc(len + 1, sizeof(char));
@@ -720,6 +720,7 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
 
     curr_item = current_item(menu);
     print_book_info_from_name(output_win, item_name(curr_item));
+    print_list_books_help_string(output_win);
 
     while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
     {
@@ -735,7 +736,6 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
                     curr_book = node_contains(item_name(curr_item));
                 else
                     curr_book = book_data[index];
-
                 break;
             case 'k':
             case KEY_UP:
@@ -747,7 +747,6 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
                     curr_book = node_contains(item_name(curr_item));
                 else
                     curr_book = book_data[index];
-
                 break;
         }
 
@@ -755,12 +754,14 @@ void list_book_to_read(WINDOW *menu_win, WINDOW *output_win, MENU *menu)
             print_book_info(output_win, curr_book);
         else
             mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
+
+        print_list_books_help_string(output_win);
     }
 
     unpost_menu(menu);
 }
 
-void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
+void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *form, char *path)
 {
     clear_previous_results();
 
@@ -876,6 +877,81 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, char *path)
                 curr_book->to_read = !curr_book->to_read;
                 should_update      = 1;
                 break;
+            case 't':
+            {
+                int ch;
+
+                werase(output_win);
+                box(output_win, 0, 0);
+
+                set_field_buffer(form->field[0], 0, curr_book->tags);
+                post_form(form);
+                wrefresh(output_win);
+
+                pos_form_cursor(form);
+
+                while ((ch = wgetch(output_win)))
+                {
+                    if (ch == ENTER)
+                    {
+                        form_driver(form, REQ_VALIDATION);
+
+                        if (strcmp(curr_book->tags, field_buffer(form->field[0], 0)) != 0)
+                        {
+                            char buffer[1024] = {0};
+                            strcpy(buffer, field_buffer(form->field[0], 0));
+                            trim_field_whitespace(buffer);
+
+                            int len = strlen(buffer) + 1;
+
+                            curr_book->tags = realloc(curr_book->tags, (sizeof(char) * len));
+                            curr_book->tags[len - 1] = '\0';
+
+                            /* Update the current books tags to be the new tags */
+                            strcpy(curr_book->tags, buffer);
+                            should_update = 1;
+                        }
+
+                        form_driver(form, REQ_CLR_FIELD);
+                        unpost_form(form);
+
+                        wrefresh(output_win);
+
+                        break;
+                    }
+
+                    switch (ch)
+                    {
+                        case KEY_LEFT:
+                            form_driver(form, REQ_PREV_CHAR);
+                            break;
+                        case KEY_RIGHT:
+                            form_driver(form, REQ_NEXT_CHAR);
+                            break;
+                        case KEY_BACKSPACE:
+                            form_driver(form, REQ_DEL_PREV);
+                            break;
+                        case KEY_DC:
+                            form_driver(form, REQ_DEL_CHAR);
+                            break;
+                        case KEY_UP:
+                            form_driver(form, REQ_END_LINE);
+                            break;
+                        case ESCAPE_KEY:
+                            goto clean_form;
+                            break;
+                        default:
+                            form_driver(form, ch);
+                    }
+                }
+
+                clean_form:
+                form_driver(form, REQ_CLR_FIELD);
+                unpost_form(form);
+                wrefresh(output_win);
+
+                break;
+            }
         }
 
         /* Show the books info on the output window */
@@ -918,7 +994,7 @@ int main(int argc, char **argv)
     FIELD *field[2];
     FORM  *tag_form;
 
-    ITEM *items[5];
+    ITEM *items[6];
     MENU *main_menu = NULL;
 
     int ch;
@@ -939,13 +1015,14 @@ int main(int argc, char **argv)
     items[1] = new_item("Get books by tag", "");
     items[2] = new_item("Show books to read", "");
     items[3] = new_item("List books", "");
-    items[4] = NULL;
-
+    items[4] = new_item("Show unread books", "");
+    items[5] = NULL;
 
     set_item_userptr(items[0], check_for_books);
     set_item_userptr(items[1], search_for_book);
     set_item_userptr(items[2], list_book_to_read);
     set_item_userptr(items[3], list_books);
+    set_item_userptr(items[4], list_book_to_read);
 
     /* Create menu */
     main_menu = new_menu(items);
@@ -1013,18 +1090,29 @@ int main(int argc, char **argv)
                 else if (curr_item == items[2])
                 {
                     unpost_menu(main_menu);
-                    void (*list_to_read)(WINDOW*, WINDOW*, MENU*) = item_userptr(curr_item);
+                    void (*list_to_read)(WINDOW*, WINDOW*, MENU*, int) = item_userptr(curr_item);
 
-                    list_to_read(main_win, output_win, main_menu);
+                    list_to_read(main_win, output_win, main_menu, 1);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
+                    print_main_menu_help_string(output_win);
                 }
                 else if (curr_item == items[3])
                 {
                     unpost_menu(main_menu);
-                    void (*list_all_books)(WINDOW*, WINDOW*, MENU*, char*) = item_userptr(curr_item);
+                    void (*list_all_books)(WINDOW*, WINDOW*, MENU*, FORM*, char*) = item_userptr(curr_item);
 
-                    list_all_books(main_win, output_win, main_menu, lib_path);
+                    list_all_books(main_win, output_win, main_menu, tag_form, lib_path);
+                    set_menu_items(main_menu, items);
+                    post_menu(main_menu);
+                    print_main_menu_help_string(output_win);
+                }
+                else if (curr_item == items[4])
+                {
+                    unpost_menu(main_menu);
+                    void (*list_to_read)(WINDOW*, WINDOW*, MENU*, int) = item_userptr(curr_item);
+
+                    list_to_read(main_win, output_win, main_menu, 0);
                     set_menu_items(main_menu, items);
                     post_menu(main_menu);
                     print_main_menu_help_string(output_win);

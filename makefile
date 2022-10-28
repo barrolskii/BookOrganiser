@@ -1,6 +1,6 @@
 CC := gcc
-#CFLAGS := -Wall -Wextra -pedantic -O3
-CFLAGS := -Wall -Wextra -pedantic -ggdb
+#CFLAGS := -Wall -Wextra -pedantic -O3 -std=gnu11
+CFLAGS := -Wall -Wextra -pedantic -ggdb -std=gnu11 -pipe
 LDFLAGS := -lncurses -lmenu -lform
 EXE := bookorganiser
 
