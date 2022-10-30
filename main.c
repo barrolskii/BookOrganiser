@@ -95,6 +95,7 @@ void print_main_menu_help_string(WINDOW *win)
 
 void print_list_books_help_string(WINDOW *win)
 {
+    mvwprintw(win, (lines - 4), 1, "<T> - Update Tags");
     mvwprintw(win, (lines - 3), 1, "<R> - Set To Read    <P>   - Set In Progress ");
     mvwprintw(win, (lines - 2), 1, "<H> - Set Have Read  <ESC> - Quit");
     wrefresh(win);
