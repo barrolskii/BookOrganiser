@@ -368,6 +368,80 @@ void init(int argc, char **argv)
     }
 }
 
+void update_book_tag(WINDOW *output_win, FORM *form, book_t *curr_book)
+{
+    int ch;
+
+    werase(output_win);
+    box(output_win, 0, 0);
+
+    set_field_buffer(form->field[0], 0, curr_book->tags);
+    post_form(form);
+    wrefresh(output_win);
+
+    pos_form_cursor(form);
+
+    while ((ch = wgetch(output_win)))
+    {
+        if (ch == ENTER)
+        {
+            form_driver(form, REQ_VALIDATION);
+
+            if (strcmp(curr_book->tags, field_buffer(form->field[0], 0)) != 0)
+            {
+                char buffer[1024] = {0};
+                strcpy(buffer, field_buffer(form->field[0], 0));
+                trim_field_whitespace(buffer);
+
+                int len = strlen(buffer) + 1;
+
+                curr_book->tags = realloc(curr_book->tags, (sizeof(char) * len));
+                curr_book->tags[len - 1] = '\0';
+
+                /* Update the current books tags to be the new tags */
+                strcpy(curr_book->tags, buffer);
+                should_update = 1;
+            }
+
+            form_driver(form, REQ_CLR_FIELD);
+            unpost_form(form);
+
+            wrefresh(output_win);
+
+            break;
+        }
+
+        switch (ch)
+        {
+            case KEY_LEFT:
+                form_driver(form, REQ_PREV_CHAR);
+                break;
+            case KEY_RIGHT:
+                form_driver(form, REQ_NEXT_CHAR);
+                break;
+            case KEY_BACKSPACE:
+                form_driver(form, REQ_DEL_PREV);
+                break;
+            case KEY_DC:
+                form_driver(form, REQ_DEL_CHAR);
+                break;
+            case KEY_UP:
+                form_driver(form, REQ_END_LINE);
+                break;
+            case ESCAPE_KEY:
+                goto clean_form;
+                break;
+            default:
+                form_driver(form, ch);
+        }
+    }
+
+    clean_form:
+    form_driver(form, REQ_CLR_FIELD);
+    unpost_form(form);
+    wrefresh(output_win);
+}
+
 void check_for_books(WINDOW *win, FORM *form, char *path)
 {
     unsigned count = dir_count_files(path);
@@ -595,16 +669,29 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
 
         name = NULL;
 
-        int index;
-        ITEM *curr_item = NULL;
-        book_t *curr_book = NULL;
-
         set_menu_items(menu, results);
         post_menu(menu);
         pos_menu_cursor(menu);
 
-        curr_item = current_item(menu);
-        print_book_info_from_name(output_win, item_name(curr_item));
+        ITEM *curr_item = current_item(menu);
+
+        int index         = get_book_index(item_name(curr_item));
+        book_t *curr_book = NULL;
+
+        if (index == -1)
+            curr_book = node_contains(item_name(curr_item));
+        else
+            curr_book = book_data[index];
+
+        if (curr_book == NULL)
+        {
+            mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
+        }
+        else
+        {
+            print_book_info(output_win, curr_book);
+            print_list_books_help_string(output_win);
+        }
 
         while ((ch = wgetch(menu_win)) != ESCAPE_KEY)
         {
@@ -633,14 +720,19 @@ void search_for_book(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *for
                     else
                         curr_book = book_data[index];
                     break;
+                case 't':
+                {
+                    update_book_tag(output_win, form, curr_book);
+                    break;
+                }
             }
-
-
 
             if (curr_book)
                 print_book_info(output_win, curr_book);
             else
                 mvwprintw(output_win, 1, 1, "Error: Cannot find book [%s]", item_name(curr_item));
+
+            print_list_books_help_string(output_win);
         }
     }
 
@@ -880,83 +972,12 @@ void list_books(WINDOW *menu_win, WINDOW *output_win, MENU *menu, FORM *form, ch
                 break;
             case 't':
             {
-                int ch;
-
-                werase(output_win);
-                box(output_win, 0, 0);
-
-                set_field_buffer(form->field[0], 0, curr_book->tags);
-                post_form(form);
-                wrefresh(output_win);
-
-                pos_form_cursor(form);
-
-                while ((ch = wgetch(output_win)))
-                {
-                    if (ch == ENTER)
-                    {
-                        form_driver(form, REQ_VALIDATION);
-
-                        if (strcmp(curr_book->tags, field_buffer(form->field[0], 0)) != 0)
-                        {
-                            char buffer[1024] = {0};
-                            strcpy(buffer, field_buffer(form->field[0], 0));
-                            trim_field_whitespace(buffer);
-
-                            int len = strlen(buffer) + 1;
-
-                            curr_book->tags = realloc(curr_book->tags, (sizeof(char) * len));
-                            curr_book->tags[len - 1] = '\0';
-
-                            /* Update the current books tags to be the new tags */
-                            strcpy(curr_book->tags, buffer);
-                            should_update = 1;
-                        }
-
-                        form_driver(form, REQ_CLR_FIELD);
-                        unpost_form(form);
-
-                        wrefresh(output_win);
-
-                        break;
-                    }
-
-                    switch (ch)
-                    {
-                        case KEY_LEFT:
-                            form_driver(form, REQ_PREV_CHAR);
-                            break;
-                        case KEY_RIGHT:
-                            form_driver(form, REQ_NEXT_CHAR);
-                            break;
-                        case KEY_BACKSPACE:
-                            form_driver(form, REQ_DEL_PREV);
-                            break;
-                        case KEY_DC:
-                            form_driver(form, REQ_DEL_CHAR);
-                            break;
-                        case KEY_UP:
-                            form_driver(form, REQ_END_LINE);
-                            break;
-                        case ESCAPE_KEY:
-                            goto clean_form;
-                            break;
-                        default:
-                            form_driver(form, ch);
-                    }
-                }
-
-                clean_form:
-                form_driver(form, REQ_CLR_FIELD);
-                unpost_form(form);
-                wrefresh(output_win);
-
+                update_book_tag(output_win, form, curr_book);
                 break;
             }
         }
 
         /* Show the books info on the output window */
-        //print_book_info_from_name(output_win, item_name(curr_item));
         if (curr_book)
             print_book_info(output_win, curr_book);
         else
@@ -1003,7 +1024,7 @@ int main(int argc, char **argv)
     field[0] = new_field(1, ((cols / 3) * 2), 1, 1, 1, 0);
     field[1] = NULL;
 
-    /* Set field options  */
+    /* Set field options */
     set_field_back(field[0], A_UNDERLINE);
     field_opts_off(field[0], O_STATIC);
     set_max_field(field[0], 1023);
@@ -1175,8 +1196,8 @@ cleanup:
 
     for (unsigned i = 0; i < results_count; i++)
     {
-        /* The cast from const char* to char* here is a bit of a code smell here */
-        /* but this is an easy way to free the memory for the results name as  */
+        /* The cast from const char* to char* here is a bit of a code smell */
+        /* but this is an easy way to free the memory for the results name as */
         /* free_item won't free the name or description for us */
         free((char*)results[i]->name.str);
         free_item(results[i]);
@@ -1196,3 +1217,15 @@ cleanup:
 
     return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+

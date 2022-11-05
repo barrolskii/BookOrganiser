@@ -6,7 +6,7 @@
 #define MIN_WIDTH  64
 #define MAX_LENGTH NAME_MAX + PATH_MAX
 
-#define VERSION        "2.2.0"
+#define VERSION        "2.3.0"
 #define BOOK_DATA_PATH ".config/bookorganiser/"
 #define BOOK_DATA_FILE "books.csv"
 
@@ -19,3 +19,4 @@
 
 
 #endif // DEFINES_H_
+
