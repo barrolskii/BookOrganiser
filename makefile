@@ -1,12 +1,10 @@
 CC := gcc
-#CFLAGS := -Wall -Wextra -pedantic -O3 -std=gnu11
-CFLAGS := -Wall -Wextra -pedantic -ggdb -std=gnu11 -pipe
-LDFLAGS := -lncurses -lmenu -lform
+CFLAGS := -Wall -Wextra -pedantic -O3 -std=gnu11 -pipe #-ggdb
+LDFLAGS := -lreadline -lncurses -lmenu -lform
 EXE := bookorganiser
 
 PREFIX := /usr/local
 BIN_DIR := $(PREFIX)/bin
-
 
 BUILD_DIR := ./build
 SRC_DIR ?= ./

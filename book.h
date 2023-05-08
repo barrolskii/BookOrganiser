@@ -1,29 +1,30 @@
 #ifndef BOOK_H_
 #define BOOK_H_
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
+#include "cJSON.h"
+#include "dynamic_array.h"
+
+#define TAGS_MAX 1024
+#define BOOK_NAME_MAX 256 // TODO: Use the linux max name length here
+
 typedef struct {
-    char *name;
-    char *tags;
-    unsigned char have_read : 1;
-    unsigned char in_prog : 1;
-    unsigned char to_read : 1;
+    char name[BOOK_NAME_MAX];
+    //char tags[TAGS_MAX];
+    dynamic_array *tags;
+    bool have_read;
+    bool in_prog;
+    bool to_read;
 } book_t;
 
-struct _book_node {
-    book_t *book;
-    struct _book_node *next;
-};
+book_t *init_book();
+void free_book(void *ptr);
 
-typedef struct _book_node book_node_t;
+cJSON *serialise_book(book_t *book);
+book_t *deserialise_book(cJSON *book);
 
-
-book_t *init_book(const char *name, const char *tags);
-void    free_book(book_t *book);
-
-book_node_t *init_book_node(const char *name, const char *tags);
-void         free_node(book_node_t *node);
-
-#endif // BOOK_H_
+#endif /* BOOK_H_ */

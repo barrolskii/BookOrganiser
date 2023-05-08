@@ -1,50 +1,66 @@
 #include "book.h"
 
-book_t *init_book(const char *name, const char *tags)
+book_t *init_book()
 {
-    book_t *new_book = calloc(1, sizeof(book_t));
+    book_t *book = calloc(1, sizeof(book_t));
+    book->tags = dynamic_array_init();
 
-    new_book->name = malloc( (sizeof(char) * strlen(name)) + 1);
-    strcpy(new_book->name, name);
-    new_book->name[strlen(new_book->name)] = '\0';
-
-    new_book->tags = malloc( (sizeof(char) * strlen(tags)) + 1);
-    strcpy(new_book->tags, tags);
-    new_book->tags[strlen(new_book->tags)] = '\0';
-
-    /* This fixes an issue with the form character padding       */
-    /* I've tried changing it to be a NULL termination character */
-    /* but that doesn't work. So we just find the last valid     */
-    /* character and put a NULL terminator after that            */
-    for (int i = strlen(new_book->tags); i > 0; i--)
-    {
-        if ((new_book->tags[i] >= 33) && (new_book->tags[i] <= 126))
-        {
-            new_book->tags[i + 1] = '\0';
-            break;
-        }
-    }
-
-    return new_book;
+    return book;
 }
 
-void free_book(book_t *book)
+void free_book(void *ptr)
 {
-    free(book->name);
-    free(book->tags);
+    book_t *book = ptr;
+    dynamic_array_clear_user_data(book->tags, free);
+    dynamic_array_free(book->tags);
     free(book);
 }
 
-book_node_t *init_book_node(const char *name, const char *tags)
+cJSON *serialise_book(book_t *book)
 {
-    book_node_t *new_node = calloc(1, sizeof(book_t));
-    new_node->book = init_book(name, tags);
+    cJSON *json_book = cJSON_CreateObject();
 
-    return new_node;
+    if (NULL == json_book)
+        return NULL;
+
+    cJSON_AddStringToObject(json_book, "name", book->name);
+
+    cJSON *tag_array = cJSON_AddArrayToObject(json_book, "tags");
+    for (size_t i = 0; i < book->tags->size; ++i)
+    {
+        cJSON *tag = cJSON_CreateString(book->tags->data[i]);
+        cJSON_AddItemToArray(tag_array, tag);
+    }
+
+    cJSON_AddBoolToObject(json_book, "have read",   book->have_read);
+    cJSON_AddBoolToObject(json_book, "in progress", book->in_prog);
+    cJSON_AddBoolToObject(json_book, "to read",     book->to_read);
+
+    return json_book;
 }
 
-void free_node(book_node_t *node)
+book_t *deserialise_book(cJSON *book)
 {
-    free_book(node->book);
-    free(node);
+    cJSON *name      = cJSON_GetObjectItem(book, "name");
+    cJSON *tags      = cJSON_GetObjectItem(book, "tags");
+    cJSON *have_read = cJSON_GetObjectItem(book, "have read");
+    cJSON *in_prog   = cJSON_GetObjectItem(book, "in progress");
+    cJSON *to_read   = cJSON_GetObjectItem(book, "to read");
+
+    book_t *new_book = init_book();
+
+    memccpy(new_book->name, name->valuestring, 0, BOOK_NAME_MAX);
+
+    cJSON *itr = NULL;
+    cJSON_ArrayForEach(itr, tags)
+    {
+        char *tag = strdup(itr->valuestring);
+        dynamic_array_add(new_book->tags, tag);
+    }
+
+    new_book->have_read = cJSON_IsTrue(have_read);
+    new_book->in_prog = cJSON_IsTrue(in_prog);
+    new_book->to_read = cJSON_IsTrue(to_read);
+
+    return new_book;
 }
