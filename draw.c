@@ -335,12 +335,14 @@ static char *readline_tag_generator(const char *text, int state)
         len = strlen(text);
     }
 
-    while ((name = tag_list->data[list_index++]))
+    while (list_index < tag_list->size)
     {
-        if (strncmp(name, text, len) == 0)
-        {
-            return strdup(name);
-        }
+        name = tag_list->data[list_index++];
+
+       if (strncmp(name, text, len) == 0)
+       {
+           return strdup(name);
+       }
     }
 
     return NULL;
