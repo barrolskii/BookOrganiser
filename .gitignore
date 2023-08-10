@@ -1,6 +1,7 @@
 *.o
 *.csv
 *.gch
+.gdb_history
 vgcore.*
 build
 prog

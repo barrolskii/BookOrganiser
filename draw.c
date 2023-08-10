@@ -12,7 +12,7 @@
 static FIELD *field[2];
 static FORM *tag_form;
 
-#define TOTAL_ITEMS 7
+#define TOTAL_ITEMS 8
 static ITEM *items[TOTAL_ITEMS];
 static MENU *main_menu;
 
@@ -36,8 +36,9 @@ static int start_x = 0;
 static char *books_path          = NULL;
 static char share_path[PATH_MAX] = {0};
 
-static dynamic_array *books_list = NULL;
-static dynamic_array *tag_list   = NULL;
+static dynamic_array *books_list     = NULL;
+static dynamic_array *tag_list       = NULL;
+static dynamic_array *recently_added = NULL;
 
 /* Input character for readline handling */
 static unsigned char input;
@@ -161,6 +162,14 @@ static void print_no_books_message()
     wrefresh(output_win);
 }
 
+static void print_no_recent_books_message()
+{
+    werase(output_win);
+    box(output_win, 0, 0);
+    mvwprintw(output_win, 2, 2, "No new books have been added in this session");
+    wrefresh(output_win);
+}
+
 static void print_book_info(book_t *book)
 {
     assert(book != NULL);
@@ -203,6 +212,8 @@ static void print_list_books_help_string()
 
 static void print_main_menu_help_string()
 {
+    mvwprintw(output_win, (lines - 5), 1, "<{>       - Move Up A Page <}>      - Move Down A Page");
+    mvwprintw(output_win, (lines - 4), 1, "<g>       - Move To Top    <G>      - Move To Bottom");
     mvwprintw(output_win, (lines - 3), 1, "<J><DOWN> - Move Down      <K><UP>  - Move Up");
     mvwprintw(output_win, (lines - 2), 1, "<ENTER>   - Select Option  <Q><ESC> - Quit");
     wrefresh(output_win);
@@ -664,6 +675,18 @@ static void menu_handler(dynamic_array *book_array)
                 curr_book = book_array->data[index];
 
                 break;
+            case 'g':
+                menu_driver(main_menu, REQ_FIRST_ITEM);
+                break;
+            case 'G':
+                menu_driver(main_menu, REQ_LAST_ITEM);
+                break;
+            case '}':
+                menu_driver(main_menu, REQ_SCR_DPAGE);
+                break;
+            case '{':
+                menu_driver(main_menu, REQ_SCR_UPAGE);
+                break;
             case 'h':
                 if (curr_book->have_read)
                 {
@@ -760,6 +783,7 @@ static void check_for_books()
                 }
 
                 dynamic_array_add(books_list, new_books_list->data[i]);
+                dynamic_array_add(recently_added, new_books_list->data[i]);
 
                 should_update = 1;
 
@@ -1092,6 +1116,18 @@ static void list_read_books()
     dynamic_array_free(search_results);
 }
 
+static void list_recent_books()
+{
+   if (recently_added->size == 0)
+   {
+       print_no_recent_books_message();
+       return;
+   }
+
+    populate_results(recently_added);
+    menu_handler(recently_added);
+}
+
 static void init_ncurses()
 {
     initscr();
@@ -1132,7 +1168,8 @@ static void init_ncurses()
     items[3] = new_item("List books", "");
     items[4] = new_item("Show unread books", "");
     items[5] = new_item("Show read books", "");
-    items[6] = NULL;
+    items[6] = new_item("Show recent books", "");
+    items[7] = NULL;
 
 /* Disabling the pedantic warnings here becuase there's nothing we can do about */
 /* the ISO standard of passing a function pointer to a void pointer */
@@ -1144,6 +1181,7 @@ static void init_ncurses()
     set_item_userptr(items[3], list_books);
     set_item_userptr(items[4], list_unread_books);
     set_item_userptr(items[5], list_read_books);
+    set_item_userptr(items[6], list_recent_books);
 #pragma GCC diagnostic pop
 
     /* Create menu */
@@ -1231,6 +1269,7 @@ void init_draw(char *path)
 
     books_list = dynamic_array_init();
     tag_list = dynamic_array_init();
+    recently_added = dynamic_array_init();
 
     strcat(share_path, getenv("HOME"));
     strcat(share_path, "/.local/share/bookorganiser");
@@ -1282,6 +1321,8 @@ void cleanup_draw()
     dynamic_array_clear_user_data(tag_list, free);
     dynamic_array_free(tag_list);
 
+    dynamic_array_free(recently_added);
+
     clear_previous_results();
 }
 
@@ -1304,6 +1345,12 @@ void main_loop()
             case KEY_UP:
                 menu_driver(main_menu, REQ_UP_ITEM);
                 break;
+            case 'g':
+                menu_driver(main_menu, REQ_FIRST_ITEM);
+                break;
+            case 'G':
+                menu_driver(main_menu, REQ_LAST_ITEM);
+                break;
             case ENTER_KEY:
             {
                 ITEM *curr_item = current_item(main_menu);
@@ -1322,6 +1369,8 @@ void main_loop()
                     print_main_menu_help_string();
                 }
 
+                /* Print the no book message and stop the user from trying to use any */
+                /* other menu option. No point in trying when there are no books      */
                 if (books_list->size == 0)
                 {
                     print_no_books_message();
@@ -1402,6 +1451,22 @@ void main_loop()
 
                     void (*list_read_books)() = item_userptr(curr_item);
                     list_read_books();
+
+                    #pragma GCC diagnostic pop
+
+                    set_menu_items(main_menu, items);
+                    post_menu(main_menu);
+                    print_main_menu_help_string();
+                }
+                else if (curr_item == items[6])
+                {
+                    unpost_menu(main_menu);
+
+                    #pragma GCC diagnostic push
+                    #pragma GCC diagnostic ignored "-Wpedantic"
+
+                    void (*list_recent_books)() = item_userptr(curr_item);
+                    list_recent_books();
 
                     #pragma GCC diagnostic pop
 
