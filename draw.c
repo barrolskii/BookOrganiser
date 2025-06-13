@@ -1,4 +1,7 @@
 #include "draw.h"
+#include <curses.h>
+#include <menu.h>
+#include <ncurses.h>
 
 #define DYNAMIC_ARRAY_IMPLEMENTATION
 #include "dynamic_array.h"
@@ -58,7 +61,6 @@ static void clear_previous_results(void)
 
     for (unsigned i = 0; results[i]; i++)
     {
-        free((char*)results[i]->name.str);
         free_item(results[i]);
     }
     free(results);
@@ -323,8 +325,7 @@ static void populate_results(dynamic_array *list)
 
     for (size_t i = 0; i < list->size; ++i)
     {
-        char *name = strdup(((book_t*)list->data[i])->name);
-        results[i] = new_item(name, "");
+        results[i] = new_item(((book_t*)list->data[i])->name, "");
     }
 }
 
@@ -858,7 +859,7 @@ static void check_for_books()
                     /* Cleanup any remaining books */
                     for (; i < new_books_list->size; ++i)
                     {
-                        free(new_books_list->data[i]);
+                        free_book(new_books_list->data[i]);
                     }
                     goto book_cleanup;
                     break;
@@ -1229,6 +1230,11 @@ static void deinit_ncurses()
     delwin(main_win);
     delwin(output_win);
     endwin();
+
+    /* NOTE: Enable this when checking leaks with valgrind, this prevents false positives */
+    #if DEBUG
+    exit_curses(0);
+    #endif
 }
 
 static void init_readline()
@@ -1381,6 +1387,7 @@ void main_loop()
                 {
                     unpost_menu(main_menu);
 
+                    /* Disable this warning as it only applies to embedded systems which I'm not targetting */
                     #pragma GCC diagnostic push
                     #pragma GCC diagnostic ignored "-Wpedantic"
 

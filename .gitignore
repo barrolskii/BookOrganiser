@@ -2,6 +2,7 @@
 *.csv
 *.gch
 .gdb_history
+.vscode
 vgcore.*
 build
 prog

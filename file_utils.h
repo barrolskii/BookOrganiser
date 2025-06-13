@@ -40,7 +40,7 @@ char *file_as_str(const char *path)
     char *contents = (char*)calloc(bytes + 1, sizeof(char));
 
     rewind(fp);
-    fread(contents, sizeof(char), bytes, fp);
+    (void)!fread(contents, sizeof(char), bytes, fp);
 
     fclose(fp);
 
