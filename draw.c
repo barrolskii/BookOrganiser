@@ -678,16 +678,39 @@ static void menu_handler(dynamic_array *book_array)
                 break;
             case 'g':
                 menu_driver(main_menu, REQ_FIRST_ITEM);
+				index = 0;
+                curr_book = book_array->data[index];
                 break;
             case 'G':
                 menu_driver(main_menu, REQ_LAST_ITEM);
+				index = book_array->size - 1;
+                curr_book = book_array->data[index];
                 break;
             case '}':
-                menu_driver(main_menu, REQ_SCR_DPAGE);
+			{
+                int status = menu_driver(main_menu, REQ_SCR_DPAGE);
+				if (status == E_REQUEST_DENIED)
+				{
+					break;
+				}
+
+				index = item_index(current_item(main_menu));
+                curr_book = book_array->data[index];
                 break;
+			}
             case '{':
-                menu_driver(main_menu, REQ_SCR_UPAGE);
+			{
+                int status = menu_driver(main_menu, REQ_SCR_UPAGE);
+				if (status == E_REQUEST_DENIED)
+				{
+					/* If the status is request denied then we can't actually scroll up a page */
+					break;
+				}
+
+				index = item_index(current_item(main_menu));
+                curr_book = book_array->data[index];
                 break;
+			}
             case 'h':
                 if (curr_book->have_read)
                 {
